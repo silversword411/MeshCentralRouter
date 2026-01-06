@@ -29,7 +29,9 @@ namespace MeshCentralRouter
         
         [Category("Action")]
         [Description("Fires when the connection state changes.")]
+#pragma warning disable CS0067 // Event is declared but never invoked in this class
         public event EventHandler StateChanged;
+#pragma warning restore CS0067
 
         [Category("Action")]
         [Description("Fires when the display list is received.")]

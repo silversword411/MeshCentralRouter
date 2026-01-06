@@ -61,8 +61,8 @@ namespace MeshCentralRouter
         private long killNextKeyPress = 0;
         private bool controlLoaded = false;
         public Rectangle[] displayInfo = null;
-        public Rectangle displayCrop = Rectangle.Empty;
-        public Point displayOrigin = Point.Empty;
+        public Rectangle displayCrop { get; set; } = Rectangle.Empty;
+        public Point displayOrigin { get; set; } = Point.Empty;
 
 
     //System level functions to be used for hook and unhook keyboard input  
@@ -928,7 +928,8 @@ namespace MeshCentralRouter
             return false;
         }
 
-    // Structure contain information about low-level keyboard input event 
+    // Structure contain information about low-level keyboard input event
+#pragma warning disable CS0649 // Field is never assigned to, and will always have its default value (filled by Windows via P/Invoke)
     private struct KBDLLHOOKSTRUCT
     {
       public Keys key;
@@ -937,6 +938,7 @@ namespace MeshCentralRouter
       public int time;
       public IntPtr extra;
     }
+#pragma warning restore CS0649
 
     public void cropDisplay(Point o, Rectangle r)
     {

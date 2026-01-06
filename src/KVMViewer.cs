@@ -49,6 +49,10 @@ namespace MeshCentralRouter
         private bool localAutoReconnect = true;
         private Dictionary<int, Button> displaySelectionButtons = new Dictionary<int, Button>();
 
+        // Title bar dragging support
+        private bool isDragging = false;
+        private Point dragOffset;
+
         // Stats
         public long bytesIn = 0;
         public long bytesInCompressed = 0;
@@ -63,6 +67,9 @@ namespace MeshCentralRouter
             this.Text += " - " + node.name;
             this.node = node;
             this.server = server;
+
+            // Update custom titlebar with node name
+            titleLabel.Text = "Remote Desktop - " + node.name;
             kvmControl = resizeKvmControl.KVM;
             kvmControl.parent = this;
             kvmControl.DesktopSizeChanged += KvmControl_DesktopSizeChanged;
@@ -92,6 +99,16 @@ namespace MeshCentralRouter
             kvmControl.RemoteKeyboardMap = Settings.GetRegValue("kvmSwamMouseButtons", "0").Equals("1");
             kvmControl.AutoSendClipboard = Settings.GetRegValue("kvmAutoClipboard", "0").Equals("1");
             kvmControl.AutoReconnect = Settings.GetRegValue("kvmAutoReconnect", "0").Equals("1");
+
+            // Subscribe to theme changes and apply initial theme
+            ThemeManager.Instance.ThemeChanged += ThemeManager_ThemeChanged;
+            UpdateTheme();
+
+            // Load status bar visibility preference
+            bool statusBarVisible = Settings.GetRegValue("kvmStatusBarVisible", "1").Equals("1");
+            mainStatusStrip.Visible = statusBarVisible;
+            statusBarToggleSwitch.Checked = statusBarVisible;
+            UpdateStatusBarToggleSwitch();
         }
 
         private void KvmControl_ScreenAreaUpdated(Bitmap desktop, Rectangle r)
@@ -492,6 +509,21 @@ namespace MeshCentralRouter
         private void MainForm_Resize(object sender, EventArgs e)
         {
             if (kvmControl != null) kvmControl.SendPause(WindowState == FormWindowState.Minimized);
+            UpdateMaximizeButtonIcon();
+        }
+
+        private void UpdateMaximizeButtonIcon()
+        {
+            // Update button icon based on window state
+            // Single square when normal, overlapping squares when maximized
+            if (this.WindowState == FormWindowState.Maximized)
+            {
+                this.maximizeButton.Text = "⬙"; // Overlapping squares
+            }
+            else
+            {
+                this.maximizeButton.Text = "⬜"; // Single square
+            }
         }
 
         private void sendCtrlAltDelToolStripMenuItem_Click(object sender, EventArgs e)
@@ -654,6 +686,45 @@ namespace MeshCentralRouter
             kvmStats = null;
         }
 
+        // Enable resize hit-testing on a borderless window
+        private const int wmNcHitTest = 0x84;
+        private const int htLeft = 10;
+        private const int htRight = 11;
+        private const int htTop = 12;
+        private const int htTopLeft = 13;
+        private const int htTopRight = 14;
+        private const int htBottom = 15;
+        private const int htBottomLeft = 16;
+        private const int htBottomRight = 17;
+        private const int resizeBorderThickness = 8;
+
+        protected override void WndProc(ref Message m)
+        {
+            if (m.Msg == wmNcHitTest)
+            {
+                // Extract screen coordinates from lParam
+                int lParam = m.LParam.ToInt32();
+                Point screenPos = new Point((short)(lParam & 0xFFFF), (short)((lParam >> 16) & 0xFFFF));
+                Point clientPos = PointToClient(screenPos);
+
+                bool onLeft = clientPos.X <= resizeBorderThickness;
+                bool onRight = clientPos.X >= ClientSize.Width - resizeBorderThickness;
+                bool onTop = clientPos.Y <= resizeBorderThickness;
+                bool onBottom = clientPos.Y >= ClientSize.Height - resizeBorderThickness;
+
+                if (onTop && onLeft) { m.Result = (IntPtr)htTopLeft; return; }
+                if (onTop && onRight) { m.Result = (IntPtr)htTopRight; return; }
+                if (onBottom && onLeft) { m.Result = (IntPtr)htBottomLeft; return; }
+                if (onBottom && onRight) { m.Result = (IntPtr)htBottomRight; return; }
+                if (onLeft) { m.Result = (IntPtr)htLeft; return; }
+                if (onRight) { m.Result = (IntPtr)htRight; return; }
+                if (onTop) { m.Result = (IntPtr)htTop; return; }
+                if (onBottom) { m.Result = (IntPtr)htBottom; return; }
+            }
+
+            base.WndProc(ref m);
+        }
+
         private void clipInboundButton_Click(object sender, EventArgs e)
         {
             //string textData = "abc";
@@ -810,6 +881,110 @@ namespace MeshCentralRouter
                     if (server.debug) { try { File.AppendAllText("debug.log", "Failed to open chat window locally\r\n"); } catch (Exception) { } }
                 }
             }
+        }
+
+        // Title bar window dragging and theme button handlers
+        private void titleBarPanel_MouseDown(object sender, MouseEventArgs e)
+        {
+            if (e.Button == MouseButtons.Left)
+            {
+                isDragging = true;
+                dragOffset = new Point(e.X, e.Y);
+            }
+        }
+
+        private void titleBarPanel_MouseMove(object sender, MouseEventArgs e)
+        {
+            if (isDragging)
+            {
+                Point currentScreenPos = PointToScreen(e.Location);
+                Location = new Point(currentScreenPos.X - dragOffset.X,
+                                   currentScreenPos.Y - dragOffset.Y);
+            }
+        }
+
+        private void titleBarPanel_MouseUp(object sender, MouseEventArgs e)
+        {
+            isDragging = false;
+        }
+
+        private void themeButton_Click(object sender, EventArgs e)
+        {
+            ThemeManager.Instance.IsDarkMode = !ThemeManager.Instance.IsDarkMode;
+        }
+
+        private void minimizeButton_Click(object sender, EventArgs e)
+        {
+            this.WindowState = FormWindowState.Minimized;
+        }
+
+        private void maximizeButton_Click(object sender, EventArgs e)
+        {
+            if (this.WindowState == FormWindowState.Maximized)
+            {
+                this.WindowState = FormWindowState.Normal;
+                resizeKvmControl.CenterKvmControl(true);
+            }
+            else
+            {
+                this.WindowState = FormWindowState.Maximized;
+            }
+            UpdateMaximizeButtonIcon();
+        }
+
+        private void closeButton_Click(object sender, EventArgs e)
+        {
+            this.Close();
+        }
+
+        private void statusBarToggleSwitch_CheckedChanged(object sender, EventArgs e)
+        {
+            mainStatusStrip.Visible = statusBarToggleSwitch.Checked;
+            Settings.SetRegValue("kvmStatusBarVisible", statusBarToggleSwitch.Checked ? "1" : "0");
+            UpdateStatusBarToggleSwitch();
+        }
+
+        private void UpdateStatusBarToggleSwitch()
+        {
+            // Update colors based on theme
+            ThemeManager theme = ThemeManager.Instance;
+            statusBarToggleSwitch.OffColor = theme.IsDarkMode ? Color.FromArgb(60, 60, 60) : Color.LightGray;
+            statusBarToggleSwitch.OnColor = Color.FromArgb(76, 175, 80); // Green
+        }
+
+        private void ThemeManager_ThemeChanged(object sender, EventArgs e)
+        {
+            UpdateTheme();
+        }
+
+        private void UpdateTheme()
+        {
+            ThemeManager theme = ThemeManager.Instance;
+            Color titleBarColor = theme.GetTitleBarColor();
+            Color titleBarTextColor = theme.GetTitleBarTextColor();
+
+            // Update title bar
+            titleBarPanel.BackColor = titleBarColor;
+            titleLabel.ForeColor = titleBarTextColor;
+
+            // Update title bar buttons
+            themeButton.BackColor = titleBarColor;
+            themeButton.ForeColor = titleBarTextColor;
+            themeButton.FlatAppearance.MouseOverBackColor = theme.GetButtonHoverColor();
+            minimizeButton.BackColor = titleBarColor;
+            minimizeButton.ForeColor = titleBarTextColor;
+            minimizeButton.FlatAppearance.MouseOverBackColor = theme.GetButtonHoverColor();
+            closeButton.BackColor = titleBarColor;
+            closeButton.ForeColor = titleBarTextColor;
+            closeButton.FlatAppearance.MouseOverBackColor = Color.FromArgb(232, 17, 35);
+
+            // Update status bar toggle panel
+            statusBarTogglePanel.BackColor = titleBarColor;
+            statusBarLabel.ForeColor = titleBarTextColor;
+            UpdateStatusBarToggleSwitch();
+
+            // Update theme button icon based on current theme
+            themeButton.Text = theme.IsDarkMode ? "☀" : "🌙";
         }
     }
 }

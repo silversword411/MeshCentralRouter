@@ -189,6 +189,9 @@
     </Compile>
     <Compile Include="src\Settings.cs" />
     <Compile Include="src\ThemeManager.cs" />
+    <Compile Include="src\ToggleSwitch.cs">
+      <SubType>Component</SubType>
+    </Compile>
     <Compile Include="src\InstallForm.cs">
       <SubType>Form</SubType>
     </Compile>
@@ -227,6 +230,7 @@
     <Compile Include="src\KVMStats.Designer.cs">
       <DependentUpon>KVMStats.cs</DependentUpon>
     </Compile>
+    <Compile Include="src\TransparentStatusStrip.cs" />
     <Compile Include="src\KVMViewer.cs">
       <SubType>Form</SubType>
     </Compile>

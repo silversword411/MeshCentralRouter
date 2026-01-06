@@ -1105,6 +1105,13 @@ namespace MeshCentralRouter
                     stateClearTimer.Enabled = true;
                     serverNameComboBox.Focus();
                 }
+                else if ((meshcentral.disconnectMsg != null) && meshcentral.disconnectMsg.StartsWith("2fasetuprequired"))
+                {
+                    stateLabel.Text = Translate.T(Properties.Resources.TwoFactorSetupRequired);
+                    stateLabel.Visible = true;
+                    stateClearTimer.Enabled = true;
+                    serverNameComboBox.Focus();
+                }
                 else if (meshcentral.disconnectMsg == "cert")
                 {
                     lastBadConnectCert = meshcentral.disconnectCert;

@@ -15,6 +15,8 @@ limitations under the License.
 */
 
 using System.Windows.Forms;
+using System.Drawing;
+using System.Drawing.Drawing2D;
 
 namespace MeshCentralRouter
 {
@@ -35,6 +37,53 @@ namespace MeshCentralRouter
         public DeviceUserControl()
         {
             InitializeComponent();
+
+            // Enable custom painting for device name label
+            deviceNameLabel.Paint += DeviceNameLabel_Paint;
+        }
+
+        private void DeviceNameLabel_Paint(object sender, PaintEventArgs e)
+        {
+            // Only draw glow effect in dark mode and when showing group names
+            if (parent == null || !parent.getShowGroupNames() || mesh == null) return;
+            if (!ThemeManager.Instance.IsDarkMode) return;
+
+            // Get the label
+            Label label = (Label)sender;
+
+            // Clear the background
+            e.Graphics.Clear(label.BackColor);
+
+            // Set high quality rendering
+            e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
+            e.Graphics.TextRenderingHint = System.Drawing.Text.TextRenderingHint.AntiAlias;
+
+            // Create the text path
+            using (GraphicsPath path = new GraphicsPath())
+            {
+                // Add the text to the path
+                path.AddString(
+                    label.Text,
+                    label.Font.FontFamily,
+                    (int)label.Font.Style,
+                    label.Font.Size * 1.33f,  // Convert point size to em size
+                    new Point(0, 0),
+                    StringFormat.GenericDefault
+                );
+
+                // Draw the glow outline (white border)
+                using (Pen glowPen = new Pen(Color.White, 2.0f))
+                {
+                    glowPen.LineJoin = LineJoin.Round;
+                    e.Graphics.DrawPath(glowPen, path);
+                }
+
+                // Draw the main text
+                using (SolidBrush textBrush = new SolidBrush(label.ForeColor))
+                {
+                    e.Graphics.FillPath(textBrush, path);
+                }
+            }
         }
 
         public void UpdateInfo()

@@ -30,6 +30,11 @@
         {
             this.components = new System.ComponentModel.Container();
             System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(MainForm));
+            this.titleBarPanel = new System.Windows.Forms.Panel();
+            this.closeButton = new System.Windows.Forms.Button();
+            this.minimizeButton = new System.Windows.Forms.Button();
+            this.themeButton = new System.Windows.Forms.Button();
+            this.titleLabel = new System.Windows.Forms.Label();
             this.panel5 = new System.Windows.Forms.Panel();
             this.mainPanel = new System.Windows.Forms.Panel();
             this.mainTabControl = new System.Windows.Forms.TabControl();
@@ -145,6 +150,7 @@
             this.saveMapFileDialog = new System.Windows.Forms.SaveFileDialog();
             this.panel5.SuspendLayout();
             this.mainPanel.SuspendLayout();
+            this.titleBarPanel.SuspendLayout();
             this.mainTabControl.SuspendLayout();
             this.tabPage1.SuspendLayout();
             this.panel1.SuspendLayout();
@@ -178,14 +184,87 @@
             // 
             this.panel5.Controls.Add(this.mainPanel);
             this.panel5.Controls.Add(this.pictureBox1);
+            this.panel5.Controls.Add(this.titleBarPanel);
             resources.ApplyResources(this.panel5, "panel5");
             this.panel5.Name = "panel5";
+            // 
+            // titleBarPanel
+            // 
+            this.titleBarPanel.BackColor = System.Drawing.SystemColors.Control;
+            this.titleBarPanel.Controls.Add(this.closeButton);
+            this.titleBarPanel.Controls.Add(this.minimizeButton);
+            this.titleBarPanel.Controls.Add(this.themeButton);
+            this.titleBarPanel.Controls.Add(this.titleLabel);
+            this.titleBarPanel.Dock = System.Windows.Forms.DockStyle.Top;
+            this.titleBarPanel.Location = new System.Drawing.Point(0, 0);
+            this.titleBarPanel.Name = "titleBarPanel";
+            this.titleBarPanel.Size = new System.Drawing.Size(492, 32);
+            this.titleBarPanel.TabIndex = 0;
+            this.titleBarPanel.MouseDown += new System.Windows.Forms.MouseEventHandler(this.titleBarPanel_MouseDown);
+            this.titleBarPanel.MouseMove += new System.Windows.Forms.MouseEventHandler(this.titleBarPanel_MouseMove);
+            this.titleBarPanel.MouseUp += new System.Windows.Forms.MouseEventHandler(this.titleBarPanel_MouseUp);
+            // 
+            // closeButton
+            // 
+            this.closeButton.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
+            this.closeButton.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.closeButton.FlatAppearance.BorderSize = 0;
+            this.closeButton.Font = new System.Drawing.Font("Segoe UI", 10F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.closeButton.Location = new System.Drawing.Point(447, 2);
+            this.closeButton.Name = "closeButton";
+            this.closeButton.Size = new System.Drawing.Size(38, 30);
+            this.closeButton.TabIndex = 3;
+            this.closeButton.Text = "✕";
+            this.closeButton.UseVisualStyleBackColor = true;
+            this.closeButton.Click += new System.EventHandler(this.closeButton_Click);
+            // 
+            // minimizeButton
+            // 
+            this.minimizeButton.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
+            this.minimizeButton.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.minimizeButton.FlatAppearance.BorderSize = 0;
+            this.minimizeButton.Font = new System.Drawing.Font("Segoe UI", 10F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.minimizeButton.Location = new System.Drawing.Point(402, 2);
+            this.minimizeButton.Name = "minimizeButton";
+            this.minimizeButton.Size = new System.Drawing.Size(38, 30);
+            this.minimizeButton.TabIndex = 2;
+            this.minimizeButton.Text = "−";
+            this.minimizeButton.UseVisualStyleBackColor = true;
+            this.minimizeButton.Click += new System.EventHandler(this.minimizeButton_Click);
+            // 
+            // themeButton
+            // 
+            this.themeButton.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
+            this.themeButton.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.themeButton.FlatAppearance.BorderSize = 0;
+            this.themeButton.Font = new System.Drawing.Font("Segoe UI", 10F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.themeButton.Location = new System.Drawing.Point(357, 2);
+            this.themeButton.Name = "themeButton";
+            this.themeButton.Size = new System.Drawing.Size(38, 30);
+            this.themeButton.TabIndex = 1;
+            this.themeButton.Text = "🌙";
+            this.themeButton.UseVisualStyleBackColor = true;
+            this.themeButton.Click += new System.EventHandler(this.themeButton_Click);
+            // 
+            // titleLabel
+            // 
+            this.titleLabel.AutoSize = true;
+            this.titleLabel.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.titleLabel.Location = new System.Drawing.Point(8, 8);
+            this.titleLabel.Name = "titleLabel";
+            this.titleLabel.Size = new System.Drawing.Size(111, 15);
+            this.titleLabel.TabIndex = 0;
+            this.titleLabel.Text = "MeshCentral Router";
+            this.titleLabel.MouseDown += new System.Windows.Forms.MouseEventHandler(this.titleBarPanel_MouseDown);
+            this.titleLabel.MouseMove += new System.Windows.Forms.MouseEventHandler(this.titleBarPanel_MouseMove);
+            this.titleLabel.MouseUp += new System.Windows.Forms.MouseEventHandler(this.titleBarPanel_MouseUp);
             // 
             // mainPanel
             // 
             this.mainPanel.Controls.Add(this.mainTabControl);
             resources.ApplyResources(this.mainPanel, "mainPanel");
             this.mainPanel.Name = "mainPanel";
+            this.mainPanel.Dock = System.Windows.Forms.DockStyle.Fill;
             // 
             // mainTabControl
             // 
@@ -924,6 +1003,7 @@
             this.pictureBox1.Image = global::MeshCentralRouter.Properties.Resources.MC2Banner;
             this.pictureBox1.Name = "pictureBox1";
             this.pictureBox1.TabStop = false;
+            this.pictureBox1.Dock = System.Windows.Forms.DockStyle.Top;
             // 
             // stateClearTimer
             // 
@@ -1029,13 +1109,16 @@
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.Controls.Add(this.panel5);
             this.DoubleBuffered = true;
-            this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedSingle;
+            this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.None;
+            this.ControlBox = false;
             this.MaximizeBox = false;
             this.Name = "MainForm";
             this.FormClosing += new System.Windows.Forms.FormClosingEventHandler(this.MainForm_FormClosing);
             this.Load += new System.EventHandler(this.MainForm_Load);
             this.KeyPress += new System.Windows.Forms.KeyPressEventHandler(this.MainForm_KeyPress);
             this.panel5.ResumeLayout(false);
+            this.titleBarPanel.ResumeLayout(false);
+            this.titleBarPanel.PerformLayout();
             this.mainPanel.ResumeLayout(false);
             this.mainTabControl.ResumeLayout(false);
             this.tabPage1.ResumeLayout(false);
@@ -1074,6 +1157,11 @@
 
         #endregion
         private System.Windows.Forms.Panel panel5;
+        private System.Windows.Forms.Panel titleBarPanel;
+        private System.Windows.Forms.Label titleLabel;
+        private System.Windows.Forms.Button themeButton;
+        private System.Windows.Forms.Button minimizeButton;
+        private System.Windows.Forms.Button closeButton;
         private System.Windows.Forms.PictureBox pictureBox1;
         private System.Windows.Forms.TabControl mainTabControl;
         private System.Windows.Forms.TabPage tabPage1;

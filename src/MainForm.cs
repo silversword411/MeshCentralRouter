@@ -66,6 +66,8 @@ namespace MeshCentralRouter
         public FileInfo nativeSshPath = null;
         public LocalPipeServer localPipeServer = null;
         private IntPtr nextClipboardViewer = IntPtr.Zero;
+        private bool isDragging = false;
+        private Point dragStartPoint;
 
         public delegate void ClipboardChangedHandler();
         public event ClipboardChangedHandler ClipboardChanged;
@@ -243,7 +245,6 @@ namespace MeshCentralRouter
             mainPanel.Controls.Add(panel2);
             mainPanel.Controls.Add(panel3);
             mainPanel.Controls.Add(panel4);
-            pictureBox1.SendToBack();
             Version version = Assembly.GetEntryAssembly().GetName().Version;
             versionLabel.Text = "v" + version.Major + "." + version.Minor + "." + version.Build;
 
@@ -457,7 +458,8 @@ namespace MeshCentralRouter
             if (newPanel == 4)
             {
                 this.Height = Settings.GetRegValue("WindowHeight", this.Height);
-                this.FormBorderStyle = FormBorderStyle.Sizable;
+                // Keep custom title bar (no native border)
+                this.FormBorderStyle = FormBorderStyle.None;
 
                 updatePanel4();
             }
@@ -467,7 +469,7 @@ namespace MeshCentralRouter
                     passwordTextBox.Text = "";
 
                 this.Height = initialHeight;
-                this.FormBorderStyle = FormBorderStyle.FixedSingle;
+                this.FormBorderStyle = FormBorderStyle.None;
             }
 
             panel1.Visible = (newPanel == 1);
@@ -502,6 +504,13 @@ namespace MeshCentralRouter
             //installPathTextBox.Text = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), "Open Source", "MeshCentral");
             //serverModeComboBox.SelectedIndex = 0;
             //windowColor = serverNameTextBox.BackColor;
+            UpdateTheme();
+            
+            // Enable custom drawing for device list group headers with glow effect
+            devicesListView.OwnerDraw = true;
+            devicesListView.DrawItem += DevicesListView_DrawItem;
+            devicesListView.DrawSubItem += DevicesListView_DrawSubItem;
+            
             setPanel(1);
             updatePanel1(null, null);
             SendMessage(searchTextBox.Handle, EM_SETCUEBANNER, 0, Translate.T(Properties.Resources.SearchPlaceHolder));
@@ -1375,6 +1384,8 @@ namespace MeshCentralRouter
                         map.Start();
 
                         mapPanel.Controls.Add(map);
+                        ThemeNewMapControl(map);
+                        ThemeNewMapControl(map);
                         noMapLabel.Visible = false;
                         processedArgs.Add(i);
                     }
@@ -1437,6 +1448,7 @@ namespace MeshCentralRouter
                         map.Start();
 
                         mapPanel.Controls.Add(map);
+                        ThemeNewMapControl(map);
                         noMapLabel.Visible = false;
                         processedArgs.Add(i);
                     }
@@ -1478,6 +1490,7 @@ namespace MeshCentralRouter
                 map.Start();
 
                 mapPanel.Controls.Add(map);
+                ThemeNewMapControl(map);
                 noMapLabel.Visible = false;
             }
         }
@@ -1648,6 +1661,7 @@ namespace MeshCentralRouter
                 map.Start();
 
                 mapPanel.Controls.Add(map);
+                ThemeNewMapControl(map);
                 noMapLabel.Visible = false;
             }
         }
@@ -2509,6 +2523,281 @@ namespace MeshCentralRouter
                     if (meshcentral.debug) { try { File.AppendAllText("debug.log", "Failed to open chat window locally\r\n"); } catch (Exception) { } }
                 }
             }
+        }
+
+        // Title bar window dragging and theme button handlers
+        private void titleBarPanel_MouseDown(object sender, MouseEventArgs e)
+        {
+            if (e.Button == MouseButtons.Left)
+            {
+                isDragging = true;
+                dragStartPoint = e.Location;
+            }
+        }
+
+        private void titleBarPanel_MouseMove(object sender, MouseEventArgs e)
+        {
+            if (isDragging)
+            {
+                Point newLocation = this.Location;
+                newLocation.X += e.X - dragStartPoint.X;
+                newLocation.Y += e.Y - dragStartPoint.Y;
+                this.Location = newLocation;
+            }
+        }
+
+        private void titleBarPanel_MouseUp(object sender, MouseEventArgs e)
+        {
+            isDragging = false;
+        }
+
+        private void themeButton_Click(object sender, EventArgs e)
+        {
+            ThemeManager.Instance.IsDarkMode = !ThemeManager.Instance.IsDarkMode;
+            UpdateTheme();
+        }
+
+        private void minimizeButton_Click(object sender, EventArgs e)
+        {
+            this.WindowState = FormWindowState.Minimized;
+        }
+
+        private void closeButton_Click(object sender, EventArgs e)
+        {
+            this.Close();
+        }
+
+        private void TitleBarButton_MouseEnter(object sender, EventArgs e)
+        {
+            Button btn = sender as Button;
+            if (btn != null)
+            {
+                btn.BackColor = ThemeManager.Instance.GetButtonHoverColor();
+            }
+        }
+
+        private void TitleBarButton_MouseLeave(object sender, EventArgs e)
+        {
+            Button btn = sender as Button;
+            if (btn != null)
+            {
+                btn.BackColor = ThemeManager.Instance.GetTitleBarColor();
+            }
+        }
+
+        private void DevicesListView_DrawItem(object sender, DrawListViewItemEventArgs e)
+        {
+            // Default drawing for items
+            e.DrawDefault = true;
+        }
+
+        private void DevicesListView_DrawSubItem(object sender, DrawListViewSubItemEventArgs e)
+        {
+            // Draw with white outline/glow for group names if they're blue
+            if (e.SubItem.Text.Length > 0 && e.Item.Group != null)
+            {
+                // Get text color - check if it looks like a group name header
+                Color textColor = e.SubItem.ForeColor;
+                if (textColor == Color.Blue || textColor.R < 100 && textColor.G < 100 && textColor.B > 150)
+                {
+                    // Draw semi-transparent white background for glow effect
+                    using (Brush glowBrush = new SolidBrush(Color.FromArgb(100, 255, 255, 255)))
+                    {
+                        e.Graphics.FillRectangle(glowBrush, e.Bounds);
+                    }
+                }
+            }
+            e.DrawDefault = true;
+        }
+
+        private void UpdateTheme()
+        {
+            ThemeManager theme = ThemeManager.Instance;
+            Color titleBarColor = theme.GetTitleBarColor();
+            Color titleBarTextColor = theme.GetTitleBarTextColor();
+            Color bgColor = theme.GetBackgroundColor();
+            Color fgColor = theme.GetForegroundColor();
+            
+            // Update title bar
+            titleBarPanel.BackColor = titleBarColor;
+            titleLabel.ForeColor = titleBarTextColor;
+            
+            // Update title bar buttons
+            themeButton.BackColor = titleBarColor;
+            themeButton.ForeColor = titleBarTextColor;
+            themeButton.FlatAppearance.MouseOverBackColor = theme.GetButtonHoverColor();
+            minimizeButton.BackColor = titleBarColor;
+            minimizeButton.ForeColor = titleBarTextColor;
+            minimizeButton.FlatAppearance.MouseOverBackColor = theme.GetButtonHoverColor();
+            closeButton.BackColor = titleBarColor;
+            closeButton.ForeColor = titleBarTextColor;
+            closeButton.FlatAppearance.MouseOverBackColor = Color.FromArgb(232, 17, 35);
+            
+            // Update theme button icon based on current theme
+            themeButton.Text = theme.IsDarkMode ? "☀" : "🌙";
+            
+            // Update main form colors
+            this.BackColor = bgColor;
+            panel5.BackColor = bgColor;
+            mainPanel.BackColor = bgColor;
+            
+            // Apply theme to mainPanel controls (panel1, panel2, panel3, panel4)
+            ApplyThemeToControl(mainPanel, bgColor, fgColor);
+            
+            // Explicitly apply theme to panel4 (devices panel) and all its contents
+            panel4.BackColor = bgColor;
+            panel4.ForeColor = fgColor;
+            ApplyThemeToControl(panel4, bgColor, fgColor);
+
+            // Special handling for search text box - make it lighter in dark mode for better placeholder visibility
+            if (theme.IsDarkMode)
+            {
+                searchTextBox.BackColor = Color.FromArgb(50, 50, 50);
+                searchTextBox.ForeColor = Color.FromArgb(200, 200, 200);
+            }
+            else
+            {
+                searchTextBox.BackColor = Color.White;
+                searchTextBox.ForeColor = Color.Black;
+            }
+
+            // Apply theme to mapPanel and all MapUserControl items
+            mapPanel.BackColor = bgColor;
+            mapPanel.ForeColor = fgColor;
+            ApplyThemeToControl(mapPanel, bgColor, fgColor);
+            
+            // Theme all MapUserControl and DeviceUserControl items
+            foreach (Control c in mapPanel.Controls)
+            {
+                if (c is MapUserControl)
+                {
+                    c.BackColor = bgColor;
+                    c.ForeColor = fgColor;
+                    ApplyThemeToControlWithColor(c, bgColor, fgColor);
+                }
+            }
+
+            foreach (Control c in devicesPanel.Controls)
+            {
+                if (c is DeviceUserControl)
+                {
+                    c.BackColor = bgColor;
+                    c.ForeColor = fgColor;
+                    ApplyThemeToControlWithColor(c, bgColor, fgColor);
+                }
+            }
+            
+            // Update tab control and tab pages
+            mainTabControl.BackColor = bgColor;
+            mainTabControl.ForeColor = fgColor;
+            foreach (TabPage tab in mainTabControl.TabPages)
+            {
+                tab.BackColor = bgColor;
+                tab.ForeColor = fgColor;
+                ApplyThemeToControl(tab, bgColor, fgColor);
+            }
+            
+            // Update context menus
+            mainContextMenuStrip.BackColor = bgColor;
+            mainContextMenuStrip.ForeColor = fgColor;
+            devicesContextMenuStrip.BackColor = bgColor;
+            devicesContextMenuStrip.ForeColor = fgColor;
+            mappingsContextMenuStrip.BackColor = bgColor;
+            mappingsContextMenuStrip.ForeColor = fgColor;
+        }
+
+        private void ApplyThemeToControl(Control parent, Color bgColor, Color fgColor)
+        {
+            foreach (Control ctrl in parent.Controls)
+            {
+                if (ctrl is Panel || ctrl is GroupBox || ctrl is TabControl || ctrl is SplitContainer)
+                {
+                    ctrl.BackColor = bgColor;
+                    ctrl.ForeColor = fgColor;
+                    ApplyThemeToControl(ctrl, bgColor, fgColor);
+                }
+                else if (ctrl is Label || ctrl is CheckBox || ctrl is RadioButton)
+                {
+                    ctrl.ForeColor = fgColor;
+                    ctrl.BackColor = bgColor;
+                }
+                else if (ctrl is TextBox)
+                {
+                    ctrl.BackColor = bgColor;
+                    ctrl.ForeColor = fgColor;
+                }
+                else if (ctrl is ComboBox)
+                {
+                    ctrl.BackColor = bgColor;
+                    ctrl.ForeColor = fgColor;
+                }
+                else if (ctrl is Button)
+                {
+                    ctrl.ForeColor = fgColor;
+                    ctrl.BackColor = bgColor;
+                }
+                else if (ctrl is LinkLabel)
+                {
+                    ctrl.ForeColor = fgColor;
+                }
+                else if (ctrl is ListView)
+                {
+                    ctrl.BackColor = bgColor;
+                    ctrl.ForeColor = fgColor;
+                }
+            }
+        }
+
+        private void ApplyThemeToControlWithColor(Control parent, Color bgColor, Color textColor)
+        {
+            foreach (Control ctrl in parent.Controls)
+            {
+                if (ctrl is Panel || ctrl is GroupBox || ctrl is TabControl || ctrl is SplitContainer)
+                {
+                    ctrl.BackColor = bgColor;
+                    ctrl.ForeColor = textColor;
+                    ApplyThemeToControlWithColor(ctrl, bgColor, textColor);
+                }
+                else if (ctrl is Label || ctrl is CheckBox || ctrl is RadioButton)
+                {
+                    ctrl.ForeColor = textColor;
+                    ctrl.BackColor = bgColor;
+                }
+                else if (ctrl is TextBox)
+                {
+                    ctrl.BackColor = bgColor;
+                    ctrl.ForeColor = textColor;
+                }
+                else if (ctrl is ComboBox)
+                {
+                    ctrl.BackColor = bgColor;
+                    ctrl.ForeColor = textColor;
+                }
+                else if (ctrl is Button)
+                {
+                    ctrl.ForeColor = textColor;
+                    ctrl.BackColor = bgColor;
+                }
+                else if (ctrl is LinkLabel)
+                {
+                    ctrl.ForeColor = textColor;
+                }
+                else if (ctrl is ListView)
+                {
+                    ctrl.BackColor = bgColor;
+                    ctrl.ForeColor = textColor;
+                }
+            }
+        }
+
+        private void ThemeNewMapControl(MapUserControl map)
+        {
+            ThemeManager theme = ThemeManager.Instance;
+            Color bgColor = theme.GetBackgroundColor();
+            Color textColor = theme.GetForegroundColor();
+            map.BackColor = bgColor;
+            map.ForeColor = textColor;
+            ApplyThemeToControlWithColor(map, bgColor, textColor);
         }
 
         /*

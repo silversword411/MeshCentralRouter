@@ -188,6 +188,7 @@
       <DependentUpon>FileViewer.cs</DependentUpon>
     </Compile>
     <Compile Include="src\Settings.cs" />
+    <Compile Include="src\ThemeManager.cs" />
     <Compile Include="src\InstallForm.cs">
       <SubType>Form</SubType>
     </Compile>

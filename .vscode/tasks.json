@@ -4,7 +4,7 @@
 		{
 			"label": "Build MeshCentralRouter",
 			"type": "shell",
-			"command": "& '${env:ProgramFiles(x86)}\\Microsoft Visual Studio\\2022\\BuildTools\\MSBuild\\Current\\Bin\\MSBuild.exe' MeshCentralRouter.sln",
+			"command": "Stop-Process -Name meshcentralrouter -Force -ErrorAction SilentlyContinue; & '${env:ProgramFiles(x86)}\\Microsoft Visual Studio\\2022\\BuildTools\\MSBuild\\Current\\Bin\\MSBuild.exe' MeshCentralRouter.sln",
 			"isBackground": false,
 			"problemMatcher": [
 				"$msCompile"

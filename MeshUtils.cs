@@ -395,5 +395,36 @@ namespace MeshMiniRouterTool
         public static StringBuilder GetStringBuilder() { lock (StringBuilderRecycleList) { return (StringBuilderRecycleList.Count == 0) ? new StringBuilder(16000) : StringBuilderRecycleList.Pop(); } }
         public static void RecycleStringBuilder(StringBuilder obj) { lock (StringBuilderRecycleList) { obj.Length = 0; StringBuilderRecycleList.Push(obj); } }
 
+        // Password encryption/decryption using DPAPI (Data Protection API)
+        public static string EncryptPassword(string password)
+        {
+            if (string.IsNullOrEmpty(password)) return null;
+            try
+            {
+                byte[] data = Encoding.UTF8.GetBytes(password);
+                byte[] encrypted = ProtectedData.Protect(data, null, DataProtectionScope.CurrentUser);
+                return Convert.ToBase64String(encrypted);
+            }
+            catch (Exception)
+            {
+                return null;
+            }
+        }
+
+        public static string DecryptPassword(string encryptedPassword)
+        {
+            if (string.IsNullOrEmpty(encryptedPassword)) return null;
+            try
+            {
+                byte[] data = Convert.FromBase64String(encryptedPassword);
+                byte[] decrypted = ProtectedData.Unprotect(data, null, DataProtectionScope.CurrentUser);
+                return Encoding.UTF8.GetString(decrypted);
+            }
+            catch (Exception)
+            {
+                return null;
+            }
+        }
+
     }
 }

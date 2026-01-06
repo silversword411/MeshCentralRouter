@@ -42,6 +42,7 @@
             this.label27 = new System.Windows.Forms.Label();
             this.label26 = new System.Windows.Forms.Label();
             this.passwordTextBox = new System.Windows.Forms.TextBox();
+            this.rememberPasswordCheckBox = new System.Windows.Forms.CheckBox();
             this.serverNameComboBox = new System.Windows.Forms.ComboBox();
             this.userNameTextBox = new System.Windows.Forms.TextBox();
             this.licenseLinkLabel = new System.Windows.Forms.LinkLabel();
@@ -213,6 +214,7 @@
             this.panel1.Controls.Add(this.label27);
             this.panel1.Controls.Add(this.label26);
             this.panel1.Controls.Add(this.passwordTextBox);
+            this.panel1.Controls.Add(this.rememberPasswordCheckBox);
             this.panel1.Controls.Add(this.serverNameComboBox);
             this.panel1.Controls.Add(this.userNameTextBox);
             this.panel1.Controls.Add(this.licenseLinkLabel);
@@ -265,6 +267,12 @@
             this.passwordTextBox.Name = "passwordTextBox";
             this.passwordTextBox.TextChanged += new System.EventHandler(this.updatePanel1);
             this.passwordTextBox.KeyPress += new System.Windows.Forms.KeyPressEventHandler(this.passwordTextBox_KeyPress);
+            // 
+            // rememberPasswordCheckBox
+            // 
+            resources.ApplyResources(this.rememberPasswordCheckBox, "rememberPasswordCheckBox");
+            this.rememberPasswordCheckBox.Name = "rememberPasswordCheckBox";
+            this.rememberPasswordCheckBox.UseVisualStyleBackColor = true;
             // 
             // serverNameComboBox
             // 
@@ -1094,6 +1102,7 @@
         private System.Windows.Forms.ComboBox serverNameComboBox;
         private System.Windows.Forms.TextBox userNameTextBox;
         private System.Windows.Forms.TextBox passwordTextBox;
+        private System.Windows.Forms.CheckBox rememberPasswordCheckBox;
         private System.Windows.Forms.Label label28;
         private System.Windows.Forms.Label label27;
         private System.Windows.Forms.Label label26;

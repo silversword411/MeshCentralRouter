@@ -31,6 +31,7 @@ using System.Drawing;
 using System.Text;
 using System.Web;
 using System.Threading.Tasks;
+using MeshMiniRouterTool;
 
 namespace MeshCentralRouter
 {
@@ -252,6 +253,33 @@ namespace MeshCentralRouter
             serverNameComboBox.Text = Settings.GetRegValue("ServerName", "");
             userNameTextBox.Text = Settings.GetRegValue("UserName", "");
             notifyIcon.Visible = Settings.GetRegValue("NotifyIcon", false);
+
+            // Load saved password if available and not expired (30 days)
+            string savedPassword = Settings.GetRegValue("SavedPassword", "");
+            string savedPasswordDate = Settings.GetRegValue("SavedPasswordDate", "");
+            if (!string.IsNullOrEmpty(savedPassword) && !string.IsNullOrEmpty(savedPasswordDate))
+            {
+                try
+                {
+                    DateTime savedDate = DateTime.Parse(savedPasswordDate);
+                    if ((DateTime.Now - savedDate).TotalDays <= 30)
+                    {
+                        string decryptedPassword = MeshUtils.DecryptPassword(savedPassword);
+                        if (decryptedPassword != null)
+                        {
+                            passwordTextBox.Text = decryptedPassword;
+                            rememberPasswordCheckBox.Checked = true;
+                        }
+                    }
+                    else
+                    {
+                        // Password expired, clear it
+                        Settings.SetRegValue("SavedPassword", "");
+                        Settings.SetRegValue("SavedPasswordDate", "");
+                    }
+                }
+                catch (Exception) { }
+            }
 
             title = this.Text;
             initialHeight = this.Height;
@@ -1151,6 +1179,22 @@ namespace MeshCentralRouter
                 {
                     Settings.SetRegValue("ServerName", serverNameComboBox.Text);
                     Settings.SetRegValue("UserName", userNameTextBox.Text);
+                    
+                    // Save or clear password based on remember checkbox
+                    if (rememberPasswordCheckBox.Checked)
+                    {
+                        string encryptedPassword = MeshUtils.EncryptPassword(passwordTextBox.Text);
+                        if (encryptedPassword != null)
+                        {
+                            Settings.SetRegValue("SavedPassword", encryptedPassword);
+                            Settings.SetRegValue("SavedPasswordDate", DateTime.Now.ToString("o"));
+                        }
+                    }
+                    else
+                    {
+                        Settings.SetRegValue("SavedPassword", "");
+                        Settings.SetRegValue("SavedPasswordDate", "");
+                    }
                 }
                 if (meshcentral.username != null)
                 {

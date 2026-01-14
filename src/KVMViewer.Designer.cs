@@ -16,6 +16,80 @@ namespace MeshCentralRouter
         }
     }
 
+    /// <summary>
+    /// Custom title bar panel that draws a centered shaded area with angled edges
+    /// Creates a visual effect like:  left side / center area \ right side
+    /// </summary>
+    public class TitleBarWithCenterPanel : System.Windows.Forms.Panel
+    {
+        private System.Drawing.Color centerColor = System.Drawing.Color.FromArgb(40, 40, 40);
+        private int centerWidth = 150;
+        private int angleWidth = 20;
+
+        public System.Drawing.Color CenterColor
+        {
+            get { return centerColor; }
+            set { centerColor = value; Invalidate(); }
+        }
+
+        public int CenterWidth
+        {
+            get { return centerWidth; }
+            set { centerWidth = value; Invalidate(); }
+        }
+
+        public int AngleWidth
+        {
+            get { return angleWidth; }
+            set { angleWidth = value; Invalidate(); }
+        }
+
+        public TitleBarWithCenterPanel()
+        {
+            this.DoubleBuffered = true;
+            this.SetStyle(System.Windows.Forms.ControlStyles.AllPaintingInWmPaint |
+                         System.Windows.Forms.ControlStyles.UserPaint |
+                         System.Windows.Forms.ControlStyles.OptimizedDoubleBuffer, true);
+        }
+
+        protected override void OnPaint(PaintEventArgs e)
+        {
+            base.OnPaint(e);
+
+            // Calculate center position
+            int centerX = this.Width / 2;
+            int halfWidth = centerWidth / 2;
+
+            // Define the trapezoid points for the center area
+            // Top is wider, bottom is narrower (or vice versa for different effect)
+            System.Drawing.Point[] points = new System.Drawing.Point[]
+            {
+                new System.Drawing.Point(centerX - halfWidth - angleWidth, 0),           // Top left
+                new System.Drawing.Point(centerX + halfWidth + angleWidth, 0),           // Top right
+                new System.Drawing.Point(centerX + halfWidth, this.Height),              // Bottom right
+                new System.Drawing.Point(centerX - halfWidth, this.Height)               // Bottom left
+            };
+
+            using (System.Drawing.Drawing2D.GraphicsPath path = new System.Drawing.Drawing2D.GraphicsPath())
+            {
+                path.AddPolygon(points);
+
+                e.Graphics.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
+
+                using (System.Drawing.SolidBrush brush = new System.Drawing.SolidBrush(centerColor))
+                {
+                    e.Graphics.FillPath(brush, path);
+                }
+            }
+        }
+
+        protected override void OnResize(System.EventArgs e)
+        {
+            base.OnResize(e);
+            Invalidate();
+        }
+    }
+
     partial class KVMViewer
     {
         /// <summary>
@@ -46,15 +120,21 @@ namespace MeshCentralRouter
         {
             this.components = new System.ComponentModel.Container();
             System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(KVMViewer));
-            this.titleBarPanel = new System.Windows.Forms.Panel();
+            this.titleBarPanel = new MeshCentralRouter.TitleBarWithCenterPanel();
             this.closeButton = new System.Windows.Forms.Button();
             this.maximizeButton = new System.Windows.Forms.Button();
             this.minimizeButton = new System.Windows.Forms.Button();
+            this.gearButton = new System.Windows.Forms.Button();
             this.themeButton = new System.Windows.Forms.Button();
             this.statusBarTogglePanel = new System.Windows.Forms.Panel();
             this.statusBarLabel = new System.Windows.Forms.Label();
             this.statusBarToggleSwitch = new MeshCentralRouter.ToggleSwitch();
             this.titleLabel = new System.Windows.Forms.Label();
+            this.dropdownPane = new System.Windows.Forms.Panel();
+            this.dropdownPaneContent = new System.Windows.Forms.Panel();
+            this.settingsPaneSettingsButton = new System.Windows.Forms.Button();
+            this.settingsPaneStatsButton = new System.Windows.Forms.Button();
+            this.dropdownPaneLabel = new System.Windows.Forms.Label();
             this.mainStatusStrip = new MeshCentralRouter.TransparentStatusStrip();
             this.mainToolStripStatusLabel = new System.Windows.Forms.ToolStripStatusLabel();
             this.toolStripStatusLabel1 = new System.Windows.Forms.ToolStripStatusLabel();
@@ -162,14 +242,90 @@ namespace MeshCentralRouter
             this.themeButton.UseVisualStyleBackColor = true;
             this.themeButton.Click += new System.EventHandler(this.themeButton_Click);
             //
+            // gearButton
+            //
+            this.gearButton.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.gearButton.FlatAppearance.BorderSize = 0;
+            this.gearButton.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.gearButton.Location = new System.Drawing.Point(100, -2);
+            this.gearButton.Name = "gearButton";
+            this.gearButton.Size = new System.Drawing.Size(28, 24);
+            this.gearButton.TabIndex = 5;
+            this.gearButton.Text = "⚙";
+            this.gearButton.UseVisualStyleBackColor = true;
+            this.gearButton.Click += new System.EventHandler(this.gearButton_Click);
+            //
+            // dropdownPane - Container for dropdown panes that appear below the center panel
+            //
+            this.dropdownPane.Anchor = System.Windows.Forms.AnchorStyles.Top;
+            this.dropdownPane.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(45)))), ((int)(((byte)(45)))), ((int)(((byte)(45)))));
+            this.dropdownPane.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
+            this.dropdownPane.Controls.Add(this.dropdownPaneLabel);
+            this.dropdownPane.Controls.Add(this.dropdownPaneContent);
+            this.dropdownPane.Location = new System.Drawing.Point(325, 32);
+            this.dropdownPane.Name = "dropdownPane";
+            this.dropdownPane.Size = new System.Drawing.Size(150, 100);
+            this.dropdownPane.TabIndex = 6;
+            this.dropdownPane.Visible = false;
+            //
+            // dropdownPaneLabel
+            //
+            this.dropdownPaneLabel.AutoSize = true;
+            this.dropdownPaneLabel.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.dropdownPaneLabel.ForeColor = System.Drawing.Color.White;
+            this.dropdownPaneLabel.Location = new System.Drawing.Point(8, 8);
+            this.dropdownPaneLabel.Name = "dropdownPaneLabel";
+            this.dropdownPaneLabel.Size = new System.Drawing.Size(52, 15);
+            this.dropdownPaneLabel.TabIndex = 0;
+            this.dropdownPaneLabel.Text = "Settings";
+            //
+            // dropdownPaneContent - Content area that holds pane-specific controls
+            //
+            this.dropdownPaneContent.BackColor = System.Drawing.Color.Transparent;
+            this.dropdownPaneContent.Location = new System.Drawing.Point(0, 28);
+            this.dropdownPaneContent.Name = "dropdownPaneContent";
+            this.dropdownPaneContent.Size = new System.Drawing.Size(148, 70);
+            this.dropdownPaneContent.TabIndex = 3;
+            //
+            // settingsPaneSettingsButton
+            //
+            this.settingsPaneSettingsButton.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.settingsPaneSettingsButton.FlatAppearance.BorderSize = 0;
+            this.settingsPaneSettingsButton.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.settingsPaneSettingsButton.ForeColor = System.Drawing.Color.White;
+            this.settingsPaneSettingsButton.Location = new System.Drawing.Point(5, 2);
+            this.settingsPaneSettingsButton.Name = "settingsPaneSettingsButton";
+            this.settingsPaneSettingsButton.Size = new System.Drawing.Size(140, 28);
+            this.settingsPaneSettingsButton.TabIndex = 1;
+            this.settingsPaneSettingsButton.Text = "⚙  Remote Desktop";
+            this.settingsPaneSettingsButton.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
+            this.settingsPaneSettingsButton.UseVisualStyleBackColor = true;
+            this.settingsPaneSettingsButton.Click += new System.EventHandler(this.settingsToolStripMenuItem_Click);
+            //
+            // settingsPaneStatsButton
+            //
+            this.settingsPaneStatsButton.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.settingsPaneStatsButton.FlatAppearance.BorderSize = 0;
+            this.settingsPaneStatsButton.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.settingsPaneStatsButton.ForeColor = System.Drawing.Color.White;
+            this.settingsPaneStatsButton.Location = new System.Drawing.Point(5, 34);
+            this.settingsPaneStatsButton.Name = "settingsPaneStatsButton";
+            this.settingsPaneStatsButton.Size = new System.Drawing.Size(140, 28);
+            this.settingsPaneStatsButton.TabIndex = 2;
+            this.settingsPaneStatsButton.Text = "📊  Statistics";
+            this.settingsPaneStatsButton.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
+            this.settingsPaneStatsButton.UseVisualStyleBackColor = true;
+            this.settingsPaneStatsButton.Click += new System.EventHandler(this.statsButton_Click);
+            //
             // statusBarTogglePanel
             //
-            this.statusBarTogglePanel.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
+            this.statusBarTogglePanel.Anchor = System.Windows.Forms.AnchorStyles.Top;
+            this.statusBarTogglePanel.Controls.Add(this.gearButton);
             this.statusBarTogglePanel.Controls.Add(this.statusBarLabel);
             this.statusBarTogglePanel.Controls.Add(this.statusBarToggleSwitch);
-            this.statusBarTogglePanel.Location = new System.Drawing.Point(545, 6);
+            this.statusBarTogglePanel.Location = new System.Drawing.Point(345, 6);
             this.statusBarTogglePanel.Name = "statusBarTogglePanel";
-            this.statusBarTogglePanel.Size = new System.Drawing.Size(110, 22);
+            this.statusBarTogglePanel.Size = new System.Drawing.Size(130, 22);
             this.statusBarTogglePanel.TabIndex = 4;
             //
             // statusBarToggleSwitch
@@ -407,17 +563,21 @@ namespace MeshCentralRouter
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.BackColor = System.Drawing.Color.Gray;
             this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.None;
+            this.Controls.Add(this.dropdownPane);
             this.Controls.Add(this.consoleMessage);
             this.Controls.Add(this.resizeKvmControl);
             this.Controls.Add(this.topPanel);
             this.Controls.Add(this.mainStatusStrip);
             this.Controls.Add(this.titleBarPanel);
+            this.dropdownPane.BringToFront();
             this.Name = "KVMViewer";
             this.Activated += new System.EventHandler(this.KVMViewer_Activated);
             this.Deactivate += new System.EventHandler(this.KVMViewer_Deactivate);
             this.FormClosing += new System.Windows.Forms.FormClosingEventHandler(this.Main_FormClosing);
             this.Load += new System.EventHandler(this.MainForm_Load);
             this.Resize += new System.EventHandler(this.MainForm_Resize);
+            this.dropdownPane.ResumeLayout(false);
+            this.dropdownPane.PerformLayout();
             this.statusBarTogglePanel.ResumeLayout(false);
             this.statusBarTogglePanel.PerformLayout();
             this.titleBarPanel.ResumeLayout(false);
@@ -432,9 +592,15 @@ namespace MeshCentralRouter
         }
 
         #endregion
-        private Panel titleBarPanel;
+        private TitleBarWithCenterPanel titleBarPanel;
         private Label titleLabel;
         private Button themeButton;
+        private Button gearButton;
+        private Panel dropdownPane;
+        private Panel dropdownPaneContent;
+        private Button settingsPaneSettingsButton;
+        private Button settingsPaneStatsButton;
+        private Label dropdownPaneLabel;
         private Panel statusBarTogglePanel;
         private ToggleSwitch statusBarToggleSwitch;
         private Label statusBarLabel;

@@ -182,6 +182,7 @@ namespace MeshCentralRouter
             this.Size = new Size(820, 480);
             resizeKvmControl.CenterKvmControl(false);
             topPanel.Visible = true;
+            CenterTitleBarControls();
 
             // Restore Window Location
             string locationStr = Settings.GetRegValue("kvmlocation", "");
@@ -471,6 +472,7 @@ namespace MeshCentralRouter
 
         private void settingsToolStripMenuItem_Click(object sender, EventArgs e)
         {
+            HideSettingsFlyout();
             if (kvmControl == null) return;
             using (KVMSettingsForm form = new KVMSettingsForm(server.features2))
             {
@@ -510,6 +512,21 @@ namespace MeshCentralRouter
         {
             if (kvmControl != null) kvmControl.SendPause(WindowState == FormWindowState.Minimized);
             UpdateMaximizeButtonIcon();
+            CenterTitleBarControls();
+        }
+
+        private void CenterTitleBarControls()
+        {
+            // Center the status bar toggle panel in the title bar
+            int centerX = (titleBarPanel.Width - statusBarTogglePanel.Width) / 2;
+            statusBarTogglePanel.Location = new Point(centerX, statusBarTogglePanel.Location.Y);
+
+            // Also center the dropdown pane if it's visible
+            if (dropdownPane.Visible)
+            {
+                int paneCenterX = (this.Width - dropdownPane.Width) / 2;
+                dropdownPane.Location = new Point(paneCenterX, dropdownPane.Location.Y);
+            }
         }
 
         private void UpdateMaximizeButtonIcon()
@@ -668,6 +685,7 @@ namespace MeshCentralRouter
 
         private void statsButton_Click(object sender, EventArgs e)
         {
+            HideSettingsFlyout();
             if (kvmStats == null)
             {
                 kvmStats = new KVMStats(this);
@@ -696,7 +714,7 @@ namespace MeshCentralRouter
         private const int htBottom = 15;
         private const int htBottomLeft = 16;
         private const int htBottomRight = 17;
-        private const int resizeBorderThickness = 8;
+        private const int resizeBorderThickness = 15;
 
         protected override void WndProc(ref Message m)
         {
@@ -740,6 +758,7 @@ namespace MeshCentralRouter
         private void resizeKvmControl_Enter(object sender, EventArgs e)
         {
             kvmControl.AttachKeyboard();
+            HideSettingsFlyout();
         }
 
         private void resizeKvmControl_Leave(object sender, EventArgs e)
@@ -913,6 +932,59 @@ namespace MeshCentralRouter
             ThemeManager.Instance.IsDarkMode = !ThemeManager.Instance.IsDarkMode;
         }
 
+        private void gearButton_Click(object sender, EventArgs e)
+        {
+            ShowDropdownPane("Settings", settingsPaneSettingsButton, settingsPaneStatsButton);
+        }
+
+        private void ShowDropdownPane(string title, params Control[] contentControls)
+        {
+            // If clicking the same pane that's already open, close it
+            if (dropdownPane.Visible && dropdownPaneLabel.Text == title)
+            {
+                HideDropdownPane();
+                return;
+            }
+
+            // Set the title
+            dropdownPaneLabel.Text = title;
+
+            // Clear existing content and add new controls
+            dropdownPaneContent.Controls.Clear();
+            foreach (var control in contentControls)
+            {
+                dropdownPaneContent.Controls.Add(control);
+            }
+
+            // Calculate pane height based on content
+            int contentHeight = contentControls.Length * 32 + 8;
+            dropdownPane.Size = new Size(150, 28 + contentHeight);
+            dropdownPaneContent.Size = new Size(148, contentHeight);
+
+            // Position the dropdown centered under the center panel area
+            int centerX = (this.Width - dropdownPane.Width) / 2;
+            int paneY = titleBarPanel.Bottom;
+            dropdownPane.Location = new Point(centerX, paneY);
+
+            // Show and bring to front
+            dropdownPane.Visible = true;
+            dropdownPane.BringToFront();
+
+            // Apply theme to the pane
+            UpdateDropdownPaneTheme();
+        }
+
+        private void HideDropdownPane()
+        {
+            dropdownPane.Visible = false;
+        }
+
+        // Keep old method name for compatibility
+        private void HideSettingsFlyout()
+        {
+            HideDropdownPane();
+        }
+
         private void minimizeButton_Click(object sender, EventArgs e)
         {
             this.WindowState = FormWindowState.Minimized;
@@ -967,6 +1039,16 @@ namespace MeshCentralRouter
             titleBarPanel.BackColor = titleBarColor;
             titleLabel.ForeColor = titleBarTextColor;
 
+            // Update center panel color (darker/lighter shade for contrast)
+            if (theme.IsDarkMode)
+            {
+                titleBarPanel.CenterColor = Color.FromArgb(55, 55, 55); // Lighter shade for better contrast in dark mode
+            }
+            else
+            {
+                titleBarPanel.CenterColor = Color.FromArgb(200, 200, 200); // Slightly darker in light mode
+            }
+
             // Update title bar buttons
             themeButton.BackColor = titleBarColor;
             themeButton.ForeColor = titleBarTextColor;
@@ -974,17 +1056,50 @@ namespace MeshCentralRouter
             minimizeButton.BackColor = titleBarColor;
             minimizeButton.ForeColor = titleBarTextColor;
             minimizeButton.FlatAppearance.MouseOverBackColor = theme.GetButtonHoverColor();
+            maximizeButton.BackColor = titleBarColor;
+            maximizeButton.ForeColor = titleBarTextColor;
+            maximizeButton.FlatAppearance.MouseOverBackColor = theme.GetButtonHoverColor();
             closeButton.BackColor = titleBarColor;
             closeButton.ForeColor = titleBarTextColor;
             closeButton.FlatAppearance.MouseOverBackColor = Color.FromArgb(232, 17, 35);
 
-            // Update status bar toggle panel
-            statusBarTogglePanel.BackColor = titleBarColor;
+            // Update dropdown pane
+            UpdateDropdownPaneTheme();
+
+            // Update status bar toggle panel (transparent to show the center area behind it)
+            statusBarTogglePanel.BackColor = Color.Transparent;
             statusBarLabel.ForeColor = titleBarTextColor;
+
+            // Update gear button in center panel
+            gearButton.BackColor = Color.Transparent;
+            gearButton.ForeColor = titleBarTextColor;
+            gearButton.FlatAppearance.MouseOverBackColor = theme.IsDarkMode ? Color.FromArgb(50, 50, 50) : Color.FromArgb(180, 180, 180);
+
             UpdateStatusBarToggleSwitch();
 
             // Update theme button icon based on current theme
             themeButton.Text = theme.IsDarkMode ? "☀" : "🌙";
+        }
+
+        private void UpdateDropdownPaneTheme()
+        {
+            ThemeManager theme = ThemeManager.Instance;
+            Color paneBgColor = theme.IsDarkMode ? Color.FromArgb(45, 45, 45) : Color.FromArgb(250, 250, 250);
+            Color paneTextColor = theme.IsDarkMode ? Color.White : Color.Black;
+            Color paneHoverColor = theme.IsDarkMode ? Color.FromArgb(60, 60, 60) : Color.FromArgb(230, 230, 230);
+
+            // Update dropdown pane container
+            dropdownPane.BackColor = paneBgColor;
+            dropdownPaneLabel.ForeColor = paneTextColor;
+            dropdownPaneContent.BackColor = paneBgColor;
+
+            // Update settings pane buttons
+            settingsPaneSettingsButton.BackColor = paneBgColor;
+            settingsPaneSettingsButton.ForeColor = paneTextColor;
+            settingsPaneSettingsButton.FlatAppearance.MouseOverBackColor = paneHoverColor;
+            settingsPaneStatsButton.BackColor = paneBgColor;
+            settingsPaneStatsButton.ForeColor = paneTextColor;
+            settingsPaneStatsButton.FlatAppearance.MouseOverBackColor = paneHoverColor;
         }
     }
 }

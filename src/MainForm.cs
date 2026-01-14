@@ -38,6 +38,7 @@ namespace MeshCentralRouter
     public partial class MainForm : Form
     {
         private int initialHeight;
+        private int initialWidth;
         private int argflags;
         public int currentPanel = 0;
         public DateTime refreshTime = DateTime.Now;
@@ -72,14 +73,46 @@ namespace MeshCentralRouter
         public delegate void ClipboardChangedHandler();
         public event ClipboardChangedHandler ClipboardChanged;
 
+        private const int RESIZE_BORDER = 6;
+
         protected override void WndProc(ref System.Windows.Forms.Message m)
         {
             // defined in winuser.h
             const int WM_DRAWCLIPBOARD = 0x308;
             const int WM_CHANGECBCHAIN = 0x030D;
+            const int WM_NCHITTEST = 0x84;
+
+            // Hit test return values for resizing
+            const int HTLEFT = 10;
+            const int HTRIGHT = 11;
+            const int HTTOP = 12;
+            const int HTTOPLEFT = 13;
+            const int HTTOPRIGHT = 14;
+            const int HTBOTTOM = 15;
+            const int HTBOTTOMLEFT = 16;
+            const int HTBOTTOMRIGHT = 17;
 
             switch (m.Msg)
             {
+                case WM_NCHITTEST:
+                    base.WndProc(ref m);
+                    Point pos = PointToClient(new Point(m.LParam.ToInt32()));
+
+                    // Check if we're in a resize zone
+                    bool left = pos.X < RESIZE_BORDER;
+                    bool right = pos.X >= ClientSize.Width - RESIZE_BORDER;
+                    bool top = pos.Y < RESIZE_BORDER;
+                    bool bottom = pos.Y >= ClientSize.Height - RESIZE_BORDER;
+
+                    if (top && left) m.Result = (IntPtr)HTTOPLEFT;
+                    else if (top && right) m.Result = (IntPtr)HTTOPRIGHT;
+                    else if (bottom && left) m.Result = (IntPtr)HTBOTTOMLEFT;
+                    else if (bottom && right) m.Result = (IntPtr)HTBOTTOMRIGHT;
+                    else if (left) m.Result = (IntPtr)HTLEFT;
+                    else if (right) m.Result = (IntPtr)HTRIGHT;
+                    else if (top) m.Result = (IntPtr)HTTOP;
+                    else if (bottom) m.Result = (IntPtr)HTBOTTOM;
+                    return;
                 case WM_DRAWCLIPBOARD:
                     if (ClipboardChanged != null) { ClipboardChanged(); }
                     Win32Api.SendMessage(nextClipboardViewer, m.Msg, m.WParam, m.LParam);
@@ -284,6 +317,7 @@ namespace MeshCentralRouter
 
             title = this.Text;
             initialHeight = this.Height;
+            initialWidth = this.Width;
 
             argflags = 0;
             string update = null;
@@ -313,10 +347,11 @@ namespace MeshCentralRouter
             }
             autoLogin = (argflags == 7);
             this.MinimizeBox = !notifyIcon.Visible;
-            this.MinimumSize = new Size(this.Width, initialHeight);
-            this.MaximumSize = new Size(this.Width, 1080);
-            this.MaximizeBox = false;
+            this.MinimumSize = new Size(initialWidth, initialHeight);
+            this.MaximumSize = new Size(0, 0); // No maximum size constraint
+            this.MaximizeBox = true;
             this.ResizeEnd += MainForm_ResizeEnd;
+            this.SizeChanged += MainForm_SizeChanged;
             this.devicesListView.Dock = DockStyle.Fill;
 
             if (update != null)
@@ -458,6 +493,7 @@ namespace MeshCentralRouter
             if (newPanel == 4)
             {
                 this.Height = Settings.GetRegValue("WindowHeight", this.Height);
+                this.Width = Settings.GetRegValue("WindowWidth", this.Width);
                 // Keep custom title bar (no native border)
                 this.FormBorderStyle = FormBorderStyle.None;
 
@@ -2456,7 +2492,23 @@ namespace MeshCentralRouter
 
         private void MainForm_ResizeEnd(object sender, EventArgs e)
         {
-            Settings.SetRegValue("WindowHeight", this.Height);
+            if (this.WindowState == FormWindowState.Normal)
+            {
+                Settings.SetRegValue("WindowHeight", this.Height);
+                Settings.SetRegValue("WindowWidth", this.Width);
+            }
+        }
+
+        private void MainForm_SizeChanged(object sender, EventArgs e)
+        {
+            if (this.WindowState == FormWindowState.Maximized)
+            {
+                maximizeButton.Text = "❐";
+            }
+            else
+            {
+                maximizeButton.Text = "☐";
+            }
         }
         
         private X509Certificate2 getClientAuthCertificate()
@@ -2535,6 +2587,11 @@ namespace MeshCentralRouter
             }
         }
 
+        private void titleBarPanel_DoubleClick(object sender, EventArgs e)
+        {
+            maximizeButton_Click(sender, e);
+        }
+
         private void titleBarPanel_MouseMove(object sender, MouseEventArgs e)
         {
             if (isDragging)
@@ -2560,6 +2617,20 @@ namespace MeshCentralRouter
         private void minimizeButton_Click(object sender, EventArgs e)
         {
             this.WindowState = FormWindowState.Minimized;
+        }
+
+        private void maximizeButton_Click(object sender, EventArgs e)
+        {
+            if (this.WindowState == FormWindowState.Maximized)
+            {
+                this.WindowState = FormWindowState.Normal;
+                maximizeButton.Text = "☐";
+            }
+            else
+            {
+                this.WindowState = FormWindowState.Maximized;
+                maximizeButton.Text = "❐";
+            }
         }
 
         private void closeButton_Click(object sender, EventArgs e)

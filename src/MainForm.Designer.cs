@@ -32,6 +32,7 @@
             System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(MainForm));
             this.titleBarPanel = new System.Windows.Forms.Panel();
             this.closeButton = new System.Windows.Forms.Button();
+            this.maximizeButton = new System.Windows.Forms.Button();
             this.minimizeButton = new System.Windows.Forms.Button();
             this.themeButton = new System.Windows.Forms.Button();
             this.titleLabel = new System.Windows.Forms.Label();
@@ -189,9 +190,10 @@
             this.panel5.Name = "panel5";
             // 
             // titleBarPanel
-            // 
+            //
             this.titleBarPanel.BackColor = System.Drawing.SystemColors.Control;
             this.titleBarPanel.Controls.Add(this.closeButton);
+            this.titleBarPanel.Controls.Add(this.maximizeButton);
             this.titleBarPanel.Controls.Add(this.minimizeButton);
             this.titleBarPanel.Controls.Add(this.themeButton);
             this.titleBarPanel.Controls.Add(this.titleLabel);
@@ -203,9 +205,10 @@
             this.titleBarPanel.MouseDown += new System.Windows.Forms.MouseEventHandler(this.titleBarPanel_MouseDown);
             this.titleBarPanel.MouseMove += new System.Windows.Forms.MouseEventHandler(this.titleBarPanel_MouseMove);
             this.titleBarPanel.MouseUp += new System.Windows.Forms.MouseEventHandler(this.titleBarPanel_MouseUp);
+            this.titleBarPanel.DoubleClick += new System.EventHandler(this.titleBarPanel_DoubleClick);
             // 
             // closeButton
-            // 
+            //
             this.closeButton.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
             this.closeButton.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
             this.closeButton.FlatAppearance.BorderSize = 0;
@@ -213,32 +216,46 @@
             this.closeButton.Location = new System.Drawing.Point(447, 2);
             this.closeButton.Name = "closeButton";
             this.closeButton.Size = new System.Drawing.Size(38, 30);
-            this.closeButton.TabIndex = 3;
+            this.closeButton.TabIndex = 4;
             this.closeButton.Text = "✕";
             this.closeButton.UseVisualStyleBackColor = true;
             this.closeButton.Click += new System.EventHandler(this.closeButton_Click);
-            // 
+            //
+            // maximizeButton
+            //
+            this.maximizeButton.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
+            this.maximizeButton.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.maximizeButton.FlatAppearance.BorderSize = 0;
+            this.maximizeButton.Font = new System.Drawing.Font("Segoe UI", 10F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.maximizeButton.Location = new System.Drawing.Point(409, 2);
+            this.maximizeButton.Name = "maximizeButton";
+            this.maximizeButton.Size = new System.Drawing.Size(38, 30);
+            this.maximizeButton.TabIndex = 3;
+            this.maximizeButton.Text = "☐";
+            this.maximizeButton.UseVisualStyleBackColor = true;
+            this.maximizeButton.Click += new System.EventHandler(this.maximizeButton_Click);
+            //
             // minimizeButton
-            // 
+            //
             this.minimizeButton.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
             this.minimizeButton.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
             this.minimizeButton.FlatAppearance.BorderSize = 0;
             this.minimizeButton.Font = new System.Drawing.Font("Segoe UI", 10F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.minimizeButton.Location = new System.Drawing.Point(402, 2);
+            this.minimizeButton.Location = new System.Drawing.Point(371, 2);
             this.minimizeButton.Name = "minimizeButton";
             this.minimizeButton.Size = new System.Drawing.Size(38, 30);
             this.minimizeButton.TabIndex = 2;
             this.minimizeButton.Text = "−";
             this.minimizeButton.UseVisualStyleBackColor = true;
             this.minimizeButton.Click += new System.EventHandler(this.minimizeButton_Click);
-            // 
+            //
             // themeButton
-            // 
+            //
             this.themeButton.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
             this.themeButton.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
             this.themeButton.FlatAppearance.BorderSize = 0;
             this.themeButton.Font = new System.Drawing.Font("Segoe UI", 10F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.themeButton.Location = new System.Drawing.Point(357, 2);
+            this.themeButton.Location = new System.Drawing.Point(333, 2);
             this.themeButton.Name = "themeButton";
             this.themeButton.Size = new System.Drawing.Size(38, 30);
             this.themeButton.TabIndex = 1;
@@ -258,6 +275,7 @@
             this.titleLabel.MouseDown += new System.Windows.Forms.MouseEventHandler(this.titleBarPanel_MouseDown);
             this.titleLabel.MouseMove += new System.Windows.Forms.MouseEventHandler(this.titleBarPanel_MouseMove);
             this.titleLabel.MouseUp += new System.Windows.Forms.MouseEventHandler(this.titleBarPanel_MouseUp);
+            this.titleLabel.DoubleClick += new System.EventHandler(this.titleBarPanel_DoubleClick);
             // 
             // mainPanel
             // 
@@ -595,7 +613,7 @@
             this.tabPage5.UseVisualStyleBackColor = true;
             // 
             // panel4
-            // 
+            //
             this.panel4.Controls.Add(this.menuLabel);
             this.panel4.Controls.Add(this.searchTextBox);
             this.panel4.Controls.Add(this.devicesTabControl);
@@ -605,6 +623,7 @@
             this.panel4.Controls.Add(this.pictureBox7);
             resources.ApplyResources(this.panel4, "panel4");
             this.panel4.Name = "panel4";
+            this.panel4.Dock = System.Windows.Forms.DockStyle.Fill;
             // 
             // menuLabel
             // 
@@ -687,12 +706,13 @@
             this.searchTextBox.KeyPress += new System.Windows.Forms.KeyPressEventHandler(this.searchTextBox_KeyPress);
             // 
             // devicesTabControl
-            // 
+            //
             resources.ApplyResources(this.devicesTabControl, "devicesTabControl");
             this.devicesTabControl.Controls.Add(this.devicesTabPage);
             this.devicesTabControl.Controls.Add(this.portMapTabPage);
             this.devicesTabControl.Name = "devicesTabControl";
             this.devicesTabControl.SelectedIndex = 0;
+            this.devicesTabControl.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) | System.Windows.Forms.AnchorStyles.Left) | System.Windows.Forms.AnchorStyles.Right)));
             this.devicesTabControl.SelectedIndexChanged += new System.EventHandler(this.devicesTabControl_SelectedIndexChanged);
             this.devicesTabControl.KeyPress += new System.Windows.Forms.KeyPressEventHandler(this.MainForm_KeyPress);
             // 
@@ -704,7 +724,7 @@
             this.devicesTabPage.Name = "devicesTabPage";
             // 
             // devicesPanel
-            // 
+            //
             resources.ApplyResources(this.devicesPanel, "devicesPanel");
             this.devicesPanel.BackColor = System.Drawing.SystemColors.ControlLightLight;
             this.devicesPanel.BorderStyle = System.Windows.Forms.BorderStyle.Fixed3D;
@@ -713,6 +733,7 @@
             this.devicesPanel.Controls.Add(this.noSearchResultsLabel);
             this.devicesPanel.Controls.Add(this.noDevicesLabel);
             this.devicesPanel.Name = "devicesPanel";
+            this.devicesPanel.Dock = System.Windows.Forms.DockStyle.Fill;
             // 
             // cancelAutoCloseButton1
             // 
@@ -917,13 +938,14 @@
             this.cancelAutoCloseButton2.Click += new System.EventHandler(this.cancelAutoCloseButton_Click);
             // 
             // mapPanel
-            // 
+            //
             this.mapPanel.AllowDrop = true;
             resources.ApplyResources(this.mapPanel, "mapPanel");
             this.mapPanel.BackColor = System.Drawing.SystemColors.ControlLightLight;
             this.mapPanel.BorderStyle = System.Windows.Forms.BorderStyle.Fixed3D;
             this.mapPanel.Controls.Add(this.noMapLabel);
             this.mapPanel.Name = "mapPanel";
+            this.mapPanel.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) | System.Windows.Forms.AnchorStyles.Left) | System.Windows.Forms.AnchorStyles.Right)));
             this.mapPanel.DragDrop += new System.Windows.Forms.DragEventHandler(this.mapPanel_DragDrop);
             this.mapPanel.DragEnter += new System.Windows.Forms.DragEventHandler(this.mapPanel_DragEnter);
             // 
@@ -1161,6 +1183,7 @@
         private System.Windows.Forms.Label titleLabel;
         private System.Windows.Forms.Button themeButton;
         private System.Windows.Forms.Button minimizeButton;
+        private System.Windows.Forms.Button maximizeButton;
         private System.Windows.Forms.Button closeButton;
         private System.Windows.Forms.PictureBox pictureBox1;
         private System.Windows.Forms.TabControl mainTabControl;

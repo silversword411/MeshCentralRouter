@@ -69,6 +69,8 @@ namespace MeshCentralRouter
         private IntPtr nextClipboardViewer = IntPtr.Zero;
         private bool isDragging = false;
         private Point dragStartPoint;
+        // Cache for tinted icons: keyed by (source image hash, tint color ARGB)
+        private Dictionary<string, Bitmap> _tintedIconCache = new Dictionary<string, Bitmap>();
 
         public delegate void ClipboardChangedHandler();
         public event ClipboardChangedHandler ClipboardChanged;
@@ -2704,8 +2706,16 @@ namespace MeshCentralRouter
             closeButton.ForeColor = titleBarTextColor;
             closeButton.FlatAppearance.MouseOverBackColor = Color.FromArgb(232, 17, 35);
             
-            // Update theme button icon based on current theme
-            themeButton.Text = theme.IsDarkMode ? "☀" : "🌙";
+            // Update theme button icon based on current theme (use Material Design icons)
+            if (theme.IsDarkMode)
+            {
+                themeButton.Image = GetTintedIcon(Properties.Resources.SunDark20, titleBarTextColor);
+            }
+            else
+            {
+                themeButton.Image = GetTintedIcon(Properties.Resources.MoonDark20, titleBarTextColor);
+            }
+            themeButton.Text = "";
             
             // Update main form colors
             this.BackColor = bgColor;
@@ -2745,6 +2755,15 @@ namespace MeshCentralRouter
                 licenseLinkLabel.BackColor = Color.Transparent;
                 licenseLinkLabel.LinkColor = Color.Blue;
             }
+
+            // Special handling for version label - use gray that works in both themes
+            versionLabel.ForeColor = theme.IsDarkMode ? Color.FromArgb(180, 180, 180) : Color.Gray;
+
+            // Special handling for state label - use red that works in both themes
+            stateLabel.ForeColor = theme.IsDarkMode ? Color.FromArgb(255, 100, 100) : Color.Red;
+
+            // Special handling for certificate warning label (label4) - use red that works in both themes
+            label4.ForeColor = theme.IsDarkMode ? Color.FromArgb(255, 100, 100) : Color.Red;
 
             // Apply theme to mapPanel and all MapUserControl items
             mapPanel.BackColor = bgColor;
@@ -2883,6 +2902,44 @@ namespace MeshCentralRouter
             map.BackColor = bgColor;
             map.ForeColor = textColor;
             ApplyThemeToControlWithColor(map, bgColor, textColor);
+        }
+
+        private Image GetTintedIcon(Image source, Color tint)
+        {
+            if (source == null) { return null; }
+
+            // Create a unique key for this source + tint combination
+            string cacheKey = source.GetHashCode() + "|" + tint.ToArgb();
+
+            if (_tintedIconCache.ContainsKey(cacheKey))
+            {
+                return _tintedIconCache[cacheKey];
+            }
+
+            Bitmap tinted = new Bitmap(source.Width, source.Height, System.Drawing.Imaging.PixelFormat.Format32bppArgb);
+
+            using (var srcBmp = new Bitmap(source))
+            {
+                for (int y = 0; y < srcBmp.Height; y++)
+                {
+                    for (int x = 0; x < srcBmp.Width; x++)
+                    {
+                        Color p = srcBmp.GetPixel(x, y);
+                        if (p.A == 0)
+                        {
+                            tinted.SetPixel(x, y, Color.Transparent);
+                        }
+                        else
+                        {
+                            // Preserve alpha, replace RGB with tint
+                            tinted.SetPixel(x, y, Color.FromArgb(p.A, tint.R, tint.G, tint.B));
+                        }
+                    }
+                }
+            }
+
+            _tintedIconCache[cacheKey] = tinted;
+            return tinted;
         }
 
         /*

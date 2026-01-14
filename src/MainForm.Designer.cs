@@ -259,7 +259,9 @@
             this.themeButton.Name = "themeButton";
             this.themeButton.Size = new System.Drawing.Size(38, 30);
             this.themeButton.TabIndex = 1;
-            this.themeButton.Text = "🌙";
+            this.themeButton.Image = global::MeshCentralRouter.Properties.Resources.MoonDark20;
+            this.themeButton.ImageAlign = System.Drawing.ContentAlignment.MiddleCenter;
+            this.themeButton.Text = "";
             this.themeButton.UseVisualStyleBackColor = true;
             this.themeButton.Click += new System.EventHandler(this.themeButton_Click);
             // 

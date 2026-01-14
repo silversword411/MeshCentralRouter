@@ -91,6 +91,16 @@ namespace MeshCentralRouter
     }
 
     /// <summary>
+    /// Specifies the position of an icon relative to the item text
+    /// </summary>
+    public enum IconPosition
+    {
+        None,
+        Left,
+        Right
+    }
+
+    /// <summary>
     /// Represents an item in a dropdown section with icon, label, and optional selection state
     /// </summary>
     public class DropdownItem
@@ -100,12 +110,17 @@ namespace MeshCentralRouter
         public System.EventHandler ClickHandler { get; set; }
         public bool IsSelected { get; set; }
         public object Tag { get; set; }
+        public System.Windows.Forms.Control HelperControl { get; set; }
+        public IconPosition IconPosition { get; set; }
+        public bool HasHelperTooltip { get; set; }
 
         public DropdownItem(string label, System.EventHandler clickHandler = null)
         {
             Label = label;
             ClickHandler = clickHandler;
             IsSelected = false;
+            IconPosition = IconPosition.Left;
+            HasHelperTooltip = false;
         }
 
         public DropdownItem(string icon, string label, System.EventHandler clickHandler = null)
@@ -114,6 +129,8 @@ namespace MeshCentralRouter
             Label = label;
             ClickHandler = clickHandler;
             IsSelected = false;
+            IconPosition = IconPosition.Left;
+            HasHelperTooltip = false;
         }
     }
 
@@ -154,6 +171,71 @@ namespace MeshCentralRouter
         public DropdownSection AddItem(string icon, string label, System.EventHandler clickHandler = null)
         {
             Items.Add(new DropdownItem(icon, label, clickHandler));
+            return this;
+        }
+    }
+
+    /// <summary>
+    /// Defines the grid-based layout configuration for a dropdown pane
+    /// </summary>
+    public class DropdownPaneLayout
+    {
+        public int ColumnsPerPane { get; set; }
+        public int RowsPerPane { get; set; }
+        public int ItemsPerGroupRow { get; set; }
+
+        public DropdownPaneLayout(int columnsPerPane, int rowsPerPane, int itemsPerGroupRow)
+        {
+            ColumnsPerPane = columnsPerPane;
+            RowsPerPane = rowsPerPane;
+            ItemsPerGroupRow = itemsPerGroupRow;
+        }
+
+        /// <summary>
+        /// Calculates the width of a single group based on the pane width
+        /// </summary>
+        public int CalculateGroupWidth(int paneWidth)
+        {
+            int totalSpacing = (ColumnsPerPane - 1) * 8; // 8px spacing between groups
+            int availableWidth = paneWidth - totalSpacing - 8; // 4px padding on each side
+            return availableWidth / ColumnsPerPane;
+        }
+
+        /// <summary>
+        /// Calculates the position of a group in the grid
+        /// </summary>
+        public System.Drawing.Point CalculateGroupPosition(int groupIndex, int groupWidth)
+        {
+            int col = groupIndex % ColumnsPerPane;
+            int row = groupIndex / ColumnsPerPane;
+            int x = 4 + col * (groupWidth + 8); // 4px left padding + column offset
+            int y = 28 + row * 0; // Will be calculated based on actual group heights
+            return new System.Drawing.Point(x, y);
+        }
+    }
+
+    /// <summary>
+    /// Represents a group of sections in a grid-based dropdown layout
+    /// </summary>
+    public class DropdownGroup
+    {
+        public System.Collections.Generic.List<DropdownSection> Sections { get; set; }
+        public int Row { get; set; }
+        public int Column { get; set; }
+
+        public DropdownGroup()
+        {
+            Sections = new System.Collections.Generic.List<DropdownSection>();
+        }
+
+        public DropdownGroup(params DropdownSection[] sections)
+        {
+            Sections = new System.Collections.Generic.List<DropdownSection>(sections);
+        }
+
+        public DropdownGroup AddSection(DropdownSection section)
+        {
+            Sections.Add(section);
             return this;
         }
     }
@@ -242,6 +324,7 @@ namespace MeshCentralRouter
             this.titleBarPanel.Controls.Add(this.maximizeButton);
             this.titleBarPanel.Controls.Add(this.minimizeButton);
             this.titleBarPanel.Controls.Add(this.themeButton);
+            this.titleBarPanel.Controls.Add(this.zoomButton);
             this.titleBarPanel.Controls.Add(this.statusBarTogglePanel);
             this.titleBarPanel.Controls.Add(this.titleLabel);
             this.titleBarPanel.Dock = System.Windows.Forms.DockStyle.Top;
@@ -302,7 +385,7 @@ namespace MeshCentralRouter
             this.themeButton.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
             this.themeButton.FlatAppearance.BorderSize = 0;
             this.themeButton.Font = new System.Drawing.Font("Segoe UI", 10F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.themeButton.Location = new System.Drawing.Point(665, 2);
+            this.themeButton.Location = new System.Drawing.Point(703, 2);
             this.themeButton.Name = "themeButton";
             this.themeButton.Size = new System.Drawing.Size(38, 30);
             this.themeButton.TabIndex = 1;
@@ -388,7 +471,7 @@ namespace MeshCentralRouter
             this.settingsPaneStatsButton.TabIndex = 2;
             this.settingsPaneStatsButton.Image = global::MeshCentralRouter.Properties.Resources.Statistics20;
             this.settingsPaneStatsButton.ImageAlign = System.Drawing.ContentAlignment.MiddleLeft;
-            this.settingsPaneStatsButton.Text = "  Statistics";
+            this.settingsPaneStatsButton.Text = "  Stats";
             this.settingsPaneStatsButton.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
             this.settingsPaneStatsButton.UseVisualStyleBackColor = true;
             this.settingsPaneStatsButton.Click += new System.EventHandler(this.statsButton_Click);
@@ -474,9 +557,6 @@ namespace MeshCentralRouter
             this.topPanel.Controls.Add(this.splitButton);
             this.topPanel.Controls.Add(this.clipOutboundButton);
             this.topPanel.Controls.Add(this.clipInboundButton);
-            this.topPanel.Controls.Add(this.statsButton);
-            this.topPanel.Controls.Add(this.settingsButton);
-            this.topPanel.Controls.Add(this.zoomButton);
             this.topPanel.Controls.Add(this.cadButton);
             this.topPanel.Controls.Add(this.connectButton);
             resources.ApplyResources(this.topPanel, "topPanel");
@@ -578,10 +658,17 @@ namespace MeshCentralRouter
             // 
             // zoomButton
             // 
-            resources.ApplyResources(this.zoomButton, "zoomButton");
-            this.zoomButton.Image = global::MeshCentralRouter.Properties.Resources.ZoomToFit;
+            this.zoomButton.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
+            this.zoomButton.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.zoomButton.FlatAppearance.BorderSize = 0;
+            this.zoomButton.Font = new System.Drawing.Font("Segoe UI", 10F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.zoomButton.Location = new System.Drawing.Point(665, 2);
             this.zoomButton.Name = "zoomButton";
-            this.zoomButton.TabStop = false;
+            this.zoomButton.Size = new System.Drawing.Size(38, 30);
+            this.zoomButton.TabIndex = 2;
+            this.zoomButton.Image = global::MeshCentralRouter.Properties.Resources.ZoomToFit;
+            this.zoomButton.ImageAlign = System.Drawing.ContentAlignment.MiddleCenter;
+            this.zoomButton.Text = "";
             this.zoomButton.UseVisualStyleBackColor = true;
             this.zoomButton.Click += new System.EventHandler(this.zoomButton_Click);
             // 

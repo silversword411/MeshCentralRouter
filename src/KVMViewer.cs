@@ -145,6 +145,10 @@ namespace MeshCentralRouter
             ThemeManager.Instance.ThemeChanged += ThemeManager_ThemeChanged;
             UpdateTheme();
 
+            // Keep title bar buttons aligned from the top-right edge
+            titleBarPanel.Resize += TitleBarPanel_Resize;
+            PositionTitleBarButtons();
+
             // Load status bar visibility preference
             bool statusBarVisible = Settings.GetRegValue("kvmStatusBarVisible", "1").Equals("1");
             mainStatusStrip.Visible = statusBarVisible;
@@ -554,6 +558,7 @@ namespace MeshCentralRouter
             if (kvmControl != null) kvmControl.SendPause(WindowState == FormWindowState.Minimized);
             UpdateMaximizeButtonIcon();
             CenterTitleBarControls();
+            PositionTitleBarButtons();
         }
 
         private void CenterTitleBarControls()
@@ -568,6 +573,30 @@ namespace MeshCentralRouter
                 int paneCenterX = (this.Width - dropdownPane.Width) / 2;
                 dropdownPane.Location = new Point(paneCenterX, dropdownPane.Location.Y);
             }
+        }
+
+        private void PositionTitleBarButtons()
+        {
+            // Position buttons from the right edge moving left to avoid overlap
+            int padding = 6;
+            int spacing = 6;
+            int y = closeButton.Location.Y;
+            int x = titleBarPanel.Width - padding;
+
+            x -= closeButton.Width;
+            closeButton.Location = new Point(x, y);
+
+            x -= spacing + maximizeButton.Width;
+            maximizeButton.Location = new Point(x, y);
+
+            x -= spacing + minimizeButton.Width;
+            minimizeButton.Location = new Point(x, y);
+
+            x -= spacing + themeButton.Width;
+            themeButton.Location = new Point(x, y);
+
+            x -= spacing + zoomButton.Width;
+            zoomButton.Location = new Point(x, y);
         }
 
         private void UpdateMaximizeButtonIcon()
@@ -975,7 +1004,47 @@ namespace MeshCentralRouter
 
         private void gearButton_Click(object sender, EventArgs e)
         {
-            ShowDropdownPane("Settings", settingsPaneSettingsButton, settingsPaneStatsButton);
+            // Create 1 column, 3 rows layout with 1 item per row
+            var layout = new DropdownPaneLayout(
+                columnsPerPane: 1,
+                rowsPerPane: 3,
+                itemsPerGroupRow: 1
+            );
+
+            // First row: View Settings item (no section header)
+            var viewSettingsSection = new DropdownSection("");
+            var viewSettingsItem = new DropdownItem("⚙️", "View Settings", settingsToolStripMenuItem_Click);
+            viewSettingsSection.AddItem(viewSettingsItem);
+            var group1 = new DropdownGroup(viewSettingsSection);
+
+            // Second row: Statistics item with tooltip (no section header)
+            var statsSection = new DropdownSection("");
+            var statsItem = new DropdownItem("📊", "Statistics", statsButton_Click);
+            
+            // Create tooltip label
+            Label tooltipLabel = new Label();
+            tooltipLabel.Text = "ℹ️";
+            tooltipLabel.Font = new Font("Segoe UI", 8F);
+            tooltipLabel.AutoSize = true;
+            tooltipLabel.Cursor = Cursors.Help;
+            
+            // Add tooltip using ToolTip control
+            ToolTip tooltip = new ToolTip();
+            tooltip.SetToolTip(tooltipLabel, "Show Statistics");
+            
+            statsItem.HasHelperTooltip = true;
+            statsItem.HelperControl = tooltipLabel;
+            statsSection.AddItem(statsItem);
+            var group2 = new DropdownGroup(statsSection);
+
+            // Third row: Status Bar toggle item (no section header)
+            var statusBarSection = new DropdownSection("");
+            var statusBarItem = new DropdownItem("📊", "Status Bar", statusBarToggleSwitch_CheckedChanged);
+            statusBarSection.AddItem(statusBarItem);
+            var group3 = new DropdownGroup(statusBarSection);
+
+            // Show the pane with grid layout
+            ShowDropdownPane("Settings", layout, group1, group2, group3);
         }
 
         private void ShowDropdownPane(string title, params Control[] contentControls)
@@ -1152,6 +1221,210 @@ namespace MeshCentralRouter
             dropdownPaneContent.BackColor = paneBgColor;
         }
 
+        /// <summary>
+        /// Shows a dropdown pane with a grid-based layout containing groups of sections
+        /// </summary>
+        private void ShowDropdownPane(string title, DropdownPaneLayout layout, params DropdownGroup[] groups)
+        {
+            // If clicking the same pane that's already open, close it
+            if (dropdownPane.Visible && dropdownPaneLabel.Text == title)
+            {
+                HideDropdownPane();
+                return;
+            }
+
+            // Set the title
+            dropdownPaneLabel.Text = title;
+
+            // Clear existing content
+            dropdownPaneContent.Controls.Clear();
+
+            ThemeManager theme = ThemeManager.Instance;
+            Color paneBgColor = theme.IsDarkMode ? Color.FromArgb(45, 45, 45) : Color.FromArgb(250, 250, 250);
+            Color paneTextColor = theme.IsDarkMode ? Color.White : Color.Black;
+            Color sectionHeaderColor = theme.IsDarkMode ? Color.FromArgb(180, 180, 180) : Color.FromArgb(100, 100, 100);
+            Color paneHoverColor = theme.IsDarkMode ? Color.FromArgb(60, 60, 60) : Color.FromArgb(230, 230, 230);
+            Color selectedColor = theme.IsDarkMode ? Color.FromArgb(70, 130, 180) : Color.FromArgb(200, 220, 240);
+
+            int itemHeight = 28;
+            int sectionHeaderHeight = 22;
+            int sectionSpacing = 8;
+            int groupSpacing = 8;
+
+            // Calculate pane dimensions based on layout
+            int paneWidth = Math.Max(180, layout.ColumnsPerPane * 100 + (layout.ColumnsPerPane - 1) * groupSpacing + 8);
+            int groupWidth = layout.CalculateGroupWidth(paneWidth);
+
+            // Track row heights for proper grid placement
+            int[] rowHeights = new int[layout.RowsPerPane];
+            for (int i = 0; i < rowHeights.Length; i++) rowHeights[i] = 0;
+
+            // Place each group in the grid (left-to-right, top-to-bottom reading order)
+            for (int groupIndex = 0; groupIndex < groups.Length; groupIndex++)
+            {
+                var group = groups[groupIndex];
+                int col = groupIndex % layout.ColumnsPerPane;
+                int row = groupIndex / layout.ColumnsPerPane;
+
+                if (row >= layout.RowsPerPane) break; // Exceeded max rows
+
+                // Calculate group position
+                int groupX = 4 + col * (groupWidth + groupSpacing);
+                int groupY = 0;
+                for (int r = 0; r < row; r++) groupY += rowHeights[r] + groupSpacing;
+
+                int yOffsetInGroup = 0;
+
+                // Render each section within the group
+                foreach (var section in group.Sections)
+                {
+                    // Add section header (skip if title is empty)
+                    if (!string.IsNullOrEmpty(section.Title))
+                    {
+                        Panel sectionHeader = new Panel();
+                        sectionHeader.Location = new Point(groupX, groupY + yOffsetInGroup);
+                        sectionHeader.Size = new Size(groupWidth, sectionHeaderHeight);
+                        sectionHeader.BackColor = Color.Transparent;
+
+                        Label sectionLabel = new Label();
+                        sectionLabel.Text = section.Title;
+                        sectionLabel.Font = new Font("Segoe UI", 8.5F, FontStyle.Regular);
+                        sectionLabel.ForeColor = sectionHeaderColor;
+                        sectionLabel.Location = new Point(4, 4);
+                        sectionLabel.AutoSize = true;
+                        sectionHeader.Controls.Add(sectionLabel);
+
+                        // Add info icon if present
+                        if (!string.IsNullOrEmpty(section.InfoIcon))
+                        {
+                            Label infoLabel = new Label();
+                            infoLabel.Text = section.InfoIcon;
+                            infoLabel.Font = new Font("Segoe UI", 8F);
+                            infoLabel.ForeColor = sectionHeaderColor;
+                            infoLabel.AutoSize = true;
+                            infoLabel.Location = new Point(groupWidth - 20, 4);
+                            sectionHeader.Controls.Add(infoLabel);
+                        }
+
+                        dropdownPaneContent.Controls.Add(sectionHeader);
+                        yOffsetInGroup += sectionHeaderHeight;
+                    }
+
+                    // Add items in rows based on layout configuration
+                    int itemsPerRow = Math.Min(layout.ItemsPerGroupRow, section.Items.Count);
+                    int itemWidth = (groupWidth - 8) / itemsPerRow;
+                    int xOffsetInGroup = 4;
+                    int itemsInCurrentRow = 0;
+
+                    foreach (var item in section.Items)
+                    {
+                        Button itemButton = new Button();
+                        itemButton.FlatStyle = FlatStyle.Flat;
+                        itemButton.FlatAppearance.BorderSize = 1; // Always show border for bounding box
+                        itemButton.FlatAppearance.BorderColor = item.IsSelected ? 
+                            (theme.IsDarkMode ? Color.FromArgb(100, 149, 237) : Color.FromArgb(70, 130, 180)) :
+                            (theme.IsDarkMode ? Color.FromArgb(80, 80, 80) : Color.FromArgb(200, 200, 200));
+                        itemButton.Font = new Font("Segoe UI", 8.5F);
+                        itemButton.ForeColor = paneTextColor;
+                        itemButton.BackColor = item.IsSelected ? selectedColor : paneBgColor;
+                        itemButton.FlatAppearance.MouseOverBackColor = paneHoverColor;
+                        itemButton.Location = new Point(groupX + xOffsetInGroup, groupY + yOffsetInGroup);
+                        itemButton.Size = new Size(itemWidth, itemHeight);
+                        itemButton.TextAlign = ContentAlignment.MiddleLeft;
+                        itemButton.TextImageRelation = TextImageRelation.ImageBeforeText;
+                        itemButton.Tag = item.Tag;
+
+                        // Set text with icon based on IconPosition
+                        if (!string.IsNullOrEmpty(item.Icon))
+                        {
+                            switch (item.IconPosition)
+                            {
+                                case IconPosition.Left:
+                                    itemButton.Text = "  " + item.Icon + " " + item.Label;
+                                    break;
+                                case IconPosition.Right:
+                                    itemButton.Text = "  " + item.Label + " " + item.Icon;
+                                    break;
+                                case IconPosition.None:
+                                default:
+                                    itemButton.Text = "  " + item.Label;
+                                    break;
+                            }
+                        }
+                        else
+                        {
+                            itemButton.Text = "  " + item.Label;
+                        }
+
+                        if (item.ClickHandler != null)
+                        {
+                            itemButton.Click += item.ClickHandler;
+                        }
+
+                        dropdownPaneContent.Controls.Add(itemButton);
+
+                        // Add helper tooltip control if present - as a child of the button
+                        if (item.HasHelperTooltip && item.HelperControl != null)
+                        {
+                            // Position at the button's actual top right corner using button's real width
+                            item.HelperControl.Location = new Point(itemButton.Width - item.HelperControl.Width - 1, 2);
+                            item.HelperControl.BringToFront();
+                            itemButton.Controls.Add(item.HelperControl);
+                        }
+
+                        xOffsetInGroup += itemWidth;
+                        itemsInCurrentRow++;
+
+                        if (itemsInCurrentRow >= itemsPerRow)
+                        {
+                            xOffsetInGroup = 4;
+                            yOffsetInGroup += itemHeight + 2;
+                            itemsInCurrentRow = 0;
+                        }
+                    }
+
+                    // If we didn't complete a row, move to next line
+                    if (itemsInCurrentRow > 0)
+                    {
+                        yOffsetInGroup += itemHeight + 2;
+                    }
+
+                    yOffsetInGroup += sectionSpacing;
+                }
+
+                // Update the row height for this group
+                if (yOffsetInGroup > rowHeights[row])
+                {
+                    rowHeights[row] = yOffsetInGroup;
+                }
+            }
+
+            // Calculate total pane height based on all row heights
+            int contentHeight = 0;
+            for (int r = 0; r < layout.RowsPerPane; r++)
+            {
+                contentHeight += rowHeights[r];
+                if (r < layout.RowsPerPane - 1) contentHeight += groupSpacing;
+            }
+
+            dropdownPane.Size = new Size(paneWidth, 28 + contentHeight);
+            dropdownPaneContent.Size = new Size(paneWidth - 2, contentHeight);
+
+            // Position the dropdown centered under the center panel area
+            int centerX = (this.Width - dropdownPane.Width) / 2;
+            int paneY = titleBarPanel.Bottom;
+            dropdownPane.Location = new Point(centerX, paneY);
+
+            // Show and bring to front
+            dropdownPane.Visible = true;
+            dropdownPane.BringToFront();
+
+            // Apply theme to the container
+            dropdownPane.BackColor = paneBgColor;
+            dropdownPaneLabel.ForeColor = paneTextColor;
+            dropdownPaneContent.BackColor = paneBgColor;
+        }
+
         private void HideDropdownPane()
         {
             dropdownPane.Visible = false;
@@ -1166,6 +1439,12 @@ namespace MeshCentralRouter
         private void minimizeButton_Click(object sender, EventArgs e)
         {
             this.WindowState = FormWindowState.Minimized;
+        }
+
+        private void TitleBarPanel_Resize(object sender, EventArgs e)
+        {
+            PositionTitleBarButtons();
+            CenterTitleBarControls();
         }
 
         private void maximizeButton_Click(object sender, EventArgs e)
@@ -1308,5 +1587,66 @@ namespace MeshCentralRouter
             settingsPaneStatsButton.Image = GetTintedIcon(Properties.Resources.Statistics20, paneTextColor);
             settingsPaneStatsButton.FlatAppearance.MouseOverBackColor = paneHoverColor;
         }
+
+        /* ===== USAGE EXAMPLE FOR GRID-BASED DROPDOWN PANE =====
+         * 
+         * The modularized dropdown pane system allows you to organize items into a grid layout
+         * with configurable rows, columns, and grouping.
+         * 
+         * Example: Creating a 2x2 grid with 3 items per row in each group
+         * 
+         * // 1. Define the layout (2 columns, 2 rows, 3 items per row in headers)
+         * var layout = new DropdownPaneLayout(
+         *     columnsPerPane: 2,  // Number of group columns in the pane
+         *     rowsPerPane: 2,     // Number of group rows in the pane
+         *     itemsPerGroupRow: 3 // Items per row within each group
+         * );
+         * 
+         * // 2. Create sections with items
+         * var displaySection = new DropdownSection("Display", "ℹ")
+         *     .AddItem("🖥️", "Fullscreen", (s, e) => { /* handler * / })
+         *     .AddItem("↔️", "Stretch", (s, e) => { /* handler * / })
+         *     .AddItem("⊞", "Fit", (s, e) => { /* handler * / });
+         * 
+         * var inputSection = new DropdownSection("Input")
+         *     .AddItem("⌨️", "Keyboard", (s, e) => { /* handler * / })
+         *     .AddItem("🖱️", "Mouse", (s, e) => { /* handler * / });
+         * 
+         * // 3. Create groups (each group occupies one grid cell)
+         * var group1 = new DropdownGroup(displaySection);
+         * var group2 = new DropdownGroup(inputSection);
+         * var group3 = new DropdownGroup(new DropdownSection("Network")
+         *     .AddItem("📊", "Stats", (s, e) => { /* handler * / }));
+         * var group4 = new DropdownGroup(new DropdownSection("Settings")
+         *     .AddItem("⚙️", "Options", (s, e) => { /* handler * / }));
+         * 
+         * // 4. Show the dropdown pane
+         * ShowDropdownPane("Advanced Settings", layout, group1, group2, group3, group4);
+         * 
+         * // Advanced features:
+         * 
+         * // Setting icon position
+         * var item = new DropdownItem("🎯", "Target", clickHandler);
+         * item.IconPosition = IconPosition.Right; // Icon appears to the right
+         * 
+         * // Adding helper tooltip control
+         * var itemWithHelp = new DropdownItem("Option", clickHandler);
+         * itemWithHelp.HasHelperTooltip = true;
+         * itemWithHelp.HelperControl = new Label() { Text = "?", Width = 20 };
+         * 
+         * // Marking items as selected
+         * var selectedItem = new DropdownItem("Active", clickHandler);
+         * selectedItem.IsSelected = true; // Shows with blue border
+         * 
+         * // Multiple sections in one group
+         * var multiSectionGroup = new DropdownGroup()
+         *     .AddSection(new DropdownSection("Section 1")
+         *         .AddItem("Item A", null)
+         *         .AddItem("Item B", null))
+         *     .AddSection(new DropdownSection("Section 2")
+         *         .AddItem("Item C", null));
+         * 
+         * ===== END USAGE EXAMPLE =====
+         */
     }
 }

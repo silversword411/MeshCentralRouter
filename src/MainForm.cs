@@ -2732,6 +2732,20 @@ namespace MeshCentralRouter
                 searchTextBox.ForeColor = Color.Black;
             }
 
+            // Special handling for license link - use semi-transparent background for visibility in dark mode
+            if (theme.IsDarkMode)
+            {
+                licenseLinkLabel.AutoSize = true; // Fit background to text
+                licenseLinkLabel.BackColor = Color.FromArgb(100, 255, 255, 255); // Semi-transparent white
+                licenseLinkLabel.LinkColor = Color.FromArgb(120, 180, 255); // Light blue - easy to read
+            }
+            else
+            {
+                licenseLinkLabel.AutoSize = true;
+                licenseLinkLabel.BackColor = Color.Transparent;
+                licenseLinkLabel.LinkColor = Color.Blue;
+            }
+
             // Apply theme to mapPanel and all MapUserControl items
             mapPanel.BackColor = bgColor;
             mapPanel.ForeColor = fgColor;

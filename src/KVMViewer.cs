@@ -28,6 +28,47 @@ namespace MeshCentralRouter
 {
     public partial class KVMViewer : Form
     {
+        // Cache for tinted icons: keyed by (source image hash, tint color ARGB)
+        private Dictionary<string, Bitmap> _tintedIconCache = new Dictionary<string, Bitmap>();
+
+        private Image GetTintedIcon(Image source, Color tint)
+        {
+            if (source == null) { return null; }
+
+            // Create a unique key for this source + tint combination
+            string cacheKey = source.GetHashCode() + "|" + tint.ToArgb();
+
+            if (_tintedIconCache.ContainsKey(cacheKey))
+            {
+                return _tintedIconCache[cacheKey];
+            }
+
+            Bitmap tinted = new Bitmap(source.Width, source.Height, System.Drawing.Imaging.PixelFormat.Format32bppArgb);
+
+            using (var srcBmp = new Bitmap(source))
+            {
+                for (int y = 0; y < srcBmp.Height; y++)
+                {
+                    for (int x = 0; x < srcBmp.Width; x++)
+                    {
+                        Color p = srcBmp.GetPixel(x, y);
+                        if (p.A == 0)
+                        {
+                            tinted.SetPixel(x, y, Color.Transparent);
+                        }
+                        else
+                        {
+                            // Preserve alpha, replace RGB with tint
+                            tinted.SetPixel(x, y, Color.FromArgb(p.A, tint.R, tint.G, tint.B));
+                        }
+                    }
+                }
+            }
+
+            _tintedIconCache[cacheKey] = tinted;
+            return tinted;
+        }
+
         private MainForm parent = null;
         private KVMControl kvmControl = null;
         private KVMStats kvmStats = null;
@@ -974,6 +1015,143 @@ namespace MeshCentralRouter
             UpdateDropdownPaneTheme();
         }
 
+        private void ShowDropdownPane(string title, params DropdownSection[] sections)
+        {
+            // If clicking the same pane that's already open, close it
+            if (dropdownPane.Visible && dropdownPaneLabel.Text == title)
+            {
+                HideDropdownPane();
+                return;
+            }
+
+            // Set the title
+            dropdownPaneLabel.Text = title;
+
+            // Clear existing content
+            dropdownPaneContent.Controls.Clear();
+
+            ThemeManager theme = ThemeManager.Instance;
+            Color paneBgColor = theme.IsDarkMode ? Color.FromArgb(45, 45, 45) : Color.FromArgb(250, 250, 250);
+            Color paneTextColor = theme.IsDarkMode ? Color.White : Color.Black;
+            Color sectionHeaderColor = theme.IsDarkMode ? Color.FromArgb(180, 180, 180) : Color.FromArgb(100, 100, 100);
+            Color paneHoverColor = theme.IsDarkMode ? Color.FromArgb(60, 60, 60) : Color.FromArgb(230, 230, 230);
+            Color selectedColor = theme.IsDarkMode ? Color.FromArgb(70, 130, 180) : Color.FromArgb(200, 220, 240);
+
+            int yOffset = 0;
+            int itemHeight = 28;
+            int sectionHeaderHeight = 22;
+            int sectionSpacing = 8;
+            int paneWidth = 180;
+
+            foreach (var section in sections)
+            {
+                // Add section header
+                Panel sectionHeader = new Panel();
+                sectionHeader.Location = new Point(0, yOffset);
+                sectionHeader.Size = new Size(paneWidth - 2, sectionHeaderHeight);
+                sectionHeader.BackColor = Color.Transparent;
+
+                Label sectionLabel = new Label();
+                sectionLabel.Text = section.Title;
+                sectionLabel.Font = new Font("Segoe UI", 8.5F, FontStyle.Regular);
+                sectionLabel.ForeColor = sectionHeaderColor;
+                sectionLabel.Location = new Point(8, 4);
+                sectionLabel.AutoSize = true;
+                sectionHeader.Controls.Add(sectionLabel);
+
+                // Add info icon if present
+                if (!string.IsNullOrEmpty(section.InfoIcon))
+                {
+                    Label infoLabel = new Label();
+                    infoLabel.Text = section.InfoIcon;
+                    infoLabel.Font = new Font("Segoe UI", 8F);
+                    infoLabel.ForeColor = sectionHeaderColor;
+                    infoLabel.AutoSize = true;
+                    infoLabel.Location = new Point(paneWidth - 25, 4);
+                    sectionHeader.Controls.Add(infoLabel);
+                }
+
+                dropdownPaneContent.Controls.Add(sectionHeader);
+                yOffset += sectionHeaderHeight;
+
+                // Add items in a row layout for this section
+                int itemsPerRow = section.Items.Count <= 4 ? section.Items.Count : 4;
+                int itemWidth = (paneWidth - 16) / itemsPerRow;
+                int xOffset = 4;
+                int itemsInCurrentRow = 0;
+
+                foreach (var item in section.Items)
+                {
+                    Button itemButton = new Button();
+                    itemButton.FlatStyle = FlatStyle.Flat;
+                    itemButton.FlatAppearance.BorderSize = item.IsSelected ? 1 : 0;
+                    itemButton.FlatAppearance.BorderColor = theme.IsDarkMode ? Color.FromArgb(100, 149, 237) : Color.FromArgb(70, 130, 180);
+                    itemButton.Font = new Font("Segoe UI", 8.5F);
+                    itemButton.ForeColor = paneTextColor;
+                    itemButton.BackColor = item.IsSelected ? selectedColor : paneBgColor;
+                    itemButton.FlatAppearance.MouseOverBackColor = paneHoverColor;
+                    itemButton.Location = new Point(xOffset, yOffset);
+                    itemButton.Size = new Size(itemWidth, itemHeight);
+                    itemButton.TextAlign = ContentAlignment.MiddleCenter;
+                    itemButton.Tag = item.Tag;
+
+                    // Set text with icon if present
+                    if (!string.IsNullOrEmpty(item.Icon))
+                    {
+                        itemButton.Text = item.Icon + "\n" + item.Label;
+                    }
+                    else
+                    {
+                        itemButton.Text = item.Label;
+                    }
+
+                    if (item.ClickHandler != null)
+                    {
+                        itemButton.Click += item.ClickHandler;
+                    }
+
+                    dropdownPaneContent.Controls.Add(itemButton);
+
+                    xOffset += itemWidth;
+                    itemsInCurrentRow++;
+
+                    if (itemsInCurrentRow >= itemsPerRow)
+                    {
+                        xOffset = 4;
+                        yOffset += itemHeight + 2;
+                        itemsInCurrentRow = 0;
+                    }
+                }
+
+                // If we didn't complete a row, move to next line
+                if (itemsInCurrentRow > 0)
+                {
+                    yOffset += itemHeight + 2;
+                }
+
+                yOffset += sectionSpacing;
+            }
+
+            // Calculate pane size
+            int contentHeight = yOffset;
+            dropdownPane.Size = new Size(paneWidth, 28 + contentHeight);
+            dropdownPaneContent.Size = new Size(paneWidth - 2, contentHeight);
+
+            // Position the dropdown centered under the center panel area
+            int centerX = (this.Width - dropdownPane.Width) / 2;
+            int paneY = titleBarPanel.Bottom;
+            dropdownPane.Location = new Point(centerX, paneY);
+
+            // Show and bring to front
+            dropdownPane.Visible = true;
+            dropdownPane.BringToFront();
+
+            // Apply theme to the container
+            dropdownPane.BackColor = paneBgColor;
+            dropdownPaneLabel.ForeColor = paneTextColor;
+            dropdownPaneContent.BackColor = paneBgColor;
+        }
+
         private void HideDropdownPane()
         {
             dropdownPane.Visible = false;
@@ -1020,8 +1198,23 @@ namespace MeshCentralRouter
         {
             // Update colors based on theme
             ThemeManager theme = ThemeManager.Instance;
-            statusBarToggleSwitch.OffColor = theme.IsDarkMode ? Color.FromArgb(60, 60, 60) : Color.LightGray;
-            statusBarToggleSwitch.OnColor = Color.FromArgb(76, 175, 80); // Green
+            // Make sure the toggle blends with the titlebar center panel (rounded corners)
+            statusBarToggleSwitch.BackColor = titleBarPanel.CenterColor;
+
+            if (theme.IsDarkMode)
+            {
+                statusBarToggleSwitch.OffColor = Color.FromArgb(90, 90, 90);
+                statusBarToggleSwitch.OnColor = Color.FromArgb(76, 175, 80); // Green
+                statusBarToggleSwitch.ThumbColor = Color.FromArgb(235, 235, 235);
+                statusBarToggleSwitch.TrackBorderColor = Color.FromArgb(90, 0, 0, 0);
+            }
+            else
+            {
+                statusBarToggleSwitch.OffColor = Color.LightGray;
+                statusBarToggleSwitch.OnColor = Color.FromArgb(76, 175, 80); // Green
+                statusBarToggleSwitch.ThumbColor = Color.White;
+                statusBarToggleSwitch.TrackBorderColor = Color.FromArgb(60, 0, 0, 0);
+            }
         }
 
         private void ThemeManager_ThemeChanged(object sender, EventArgs e)
@@ -1042,7 +1235,7 @@ namespace MeshCentralRouter
             // Update center panel color (darker/lighter shade for contrast)
             if (theme.IsDarkMode)
             {
-                titleBarPanel.CenterColor = Color.FromArgb(55, 55, 55); // Lighter shade for better contrast in dark mode
+                titleBarPanel.CenterColor = Color.FromArgb(65, 65, 65); // Slightly lighter shade for better contrast in dark mode
             }
             else
             {
@@ -1066,19 +1259,30 @@ namespace MeshCentralRouter
             // Update dropdown pane
             UpdateDropdownPaneTheme();
 
-            // Update status bar toggle panel (transparent to show the center area behind it)
-            statusBarTogglePanel.BackColor = Color.Transparent;
+            // Match the center panel color so child controls (toggle rounded corners) render cleanly.
+            statusBarTogglePanel.BackColor = titleBarPanel.CenterColor;
             statusBarLabel.ForeColor = titleBarTextColor;
 
             // Update gear button in center panel
-            gearButton.BackColor = Color.Transparent;
+            gearButton.BackColor = titleBarPanel.CenterColor;
             gearButton.ForeColor = titleBarTextColor;
             gearButton.FlatAppearance.MouseOverBackColor = theme.IsDarkMode ? Color.FromArgb(50, 50, 50) : Color.FromArgb(180, 180, 180);
+            // Use a tinted Material icon so it stays readable in both themes
+            gearButton.Image = GetTintedIcon(Properties.Resources.Gear20, titleBarTextColor);
+            gearButton.Text = "";
 
             UpdateStatusBarToggleSwitch();
 
-            // Update theme button icon based on current theme
-            themeButton.Text = theme.IsDarkMode ? "☀" : "🌙";
+            // Update theme button icon based on current theme (use Material Design icons)
+            if (theme.IsDarkMode)
+            {
+                themeButton.Image = GetTintedIcon(Properties.Resources.SunDark20, titleBarTextColor);
+            }
+            else
+            {
+                themeButton.Image = GetTintedIcon(Properties.Resources.MoonDark20, titleBarTextColor);
+            }
+            themeButton.Text = "";
         }
 
         private void UpdateDropdownPaneTheme()
@@ -1093,12 +1297,15 @@ namespace MeshCentralRouter
             dropdownPaneLabel.ForeColor = paneTextColor;
             dropdownPaneContent.BackColor = paneBgColor;
 
-            // Update settings pane buttons
+            // Update settings pane buttons with theme-aware tinted icons
             settingsPaneSettingsButton.BackColor = paneBgColor;
             settingsPaneSettingsButton.ForeColor = paneTextColor;
+            settingsPaneSettingsButton.Image = GetTintedIcon(Properties.Resources.Gear20, paneTextColor);
             settingsPaneSettingsButton.FlatAppearance.MouseOverBackColor = paneHoverColor;
+            
             settingsPaneStatsButton.BackColor = paneBgColor;
             settingsPaneStatsButton.ForeColor = paneTextColor;
+            settingsPaneStatsButton.Image = GetTintedIcon(Properties.Resources.Statistics20, paneTextColor);
             settingsPaneStatsButton.FlatAppearance.MouseOverBackColor = paneHoverColor;
         }
     }

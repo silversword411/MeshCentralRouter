@@ -61,13 +61,13 @@ namespace MeshCentralRouter
             int halfWidth = centerWidth / 2;
 
             // Define the trapezoid points for the center area
-            // Top is wider, bottom is narrower (or vice versa for different effect)
+            // Top is narrower, bottom is wider (inverted trapezoid)
             System.Drawing.Point[] points = new System.Drawing.Point[]
             {
-                new System.Drawing.Point(centerX - halfWidth - angleWidth, 0),           // Top left
-                new System.Drawing.Point(centerX + halfWidth + angleWidth, 0),           // Top right
-                new System.Drawing.Point(centerX + halfWidth, this.Height),              // Bottom right
-                new System.Drawing.Point(centerX - halfWidth, this.Height)               // Bottom left
+                new System.Drawing.Point(centerX - halfWidth, 0),                         // Top left
+                new System.Drawing.Point(centerX + halfWidth, 0),                         // Top right
+                new System.Drawing.Point(centerX + halfWidth + angleWidth, this.Height),  // Bottom right
+                new System.Drawing.Point(centerX - halfWidth - angleWidth, this.Height)   // Bottom left
             };
 
             using (System.Drawing.Drawing2D.GraphicsPath path = new System.Drawing.Drawing2D.GraphicsPath())
@@ -87,6 +87,74 @@ namespace MeshCentralRouter
         {
             base.OnResize(e);
             Invalidate();
+        }
+    }
+
+    /// <summary>
+    /// Represents an item in a dropdown section with icon, label, and optional selection state
+    /// </summary>
+    public class DropdownItem
+    {
+        public string Icon { get; set; }
+        public string Label { get; set; }
+        public System.EventHandler ClickHandler { get; set; }
+        public bool IsSelected { get; set; }
+        public object Tag { get; set; }
+
+        public DropdownItem(string label, System.EventHandler clickHandler = null)
+        {
+            Label = label;
+            ClickHandler = clickHandler;
+            IsSelected = false;
+        }
+
+        public DropdownItem(string icon, string label, System.EventHandler clickHandler = null)
+        {
+            Icon = icon;
+            Label = label;
+            ClickHandler = clickHandler;
+            IsSelected = false;
+        }
+    }
+
+    /// <summary>
+    /// Represents a section in a dropdown pane containing a header and multiple items
+    /// </summary>
+    public class DropdownSection
+    {
+        public string Title { get; set; }
+        public string InfoIcon { get; set; }
+        public System.Collections.Generic.List<DropdownItem> Items { get; set; }
+
+        public DropdownSection(string title)
+        {
+            Title = title;
+            Items = new System.Collections.Generic.List<DropdownItem>();
+        }
+
+        public DropdownSection(string title, string infoIcon)
+        {
+            Title = title;
+            InfoIcon = infoIcon;
+            Items = new System.Collections.Generic.List<DropdownItem>();
+        }
+
+        public DropdownSection AddItem(DropdownItem item)
+        {
+            Items.Add(item);
+            return this;
+        }
+
+        public DropdownSection AddItem(string label, System.EventHandler clickHandler = null)
+        {
+            Items.Add(new DropdownItem(label, clickHandler));
+            return this;
+        }
+
+        public DropdownSection AddItem(string icon, string label, System.EventHandler clickHandler = null)
+        {
+            Items.Add(new DropdownItem(icon, label, clickHandler));
+            return this;
         }
     }
 
@@ -238,7 +306,9 @@ namespace MeshCentralRouter
             this.themeButton.Name = "themeButton";
             this.themeButton.Size = new System.Drawing.Size(38, 30);
             this.themeButton.TabIndex = 1;
-            this.themeButton.Text = "🌙";
+            this.themeButton.Image = global::MeshCentralRouter.Properties.Resources.MoonDark20;
+            this.themeButton.ImageAlign = System.Drawing.ContentAlignment.MiddleCenter;
+            this.themeButton.Text = "";
             this.themeButton.UseVisualStyleBackColor = true;
             this.themeButton.Click += new System.EventHandler(this.themeButton_Click);
             //
@@ -251,7 +321,9 @@ namespace MeshCentralRouter
             this.gearButton.Name = "gearButton";
             this.gearButton.Size = new System.Drawing.Size(28, 24);
             this.gearButton.TabIndex = 5;
-            this.gearButton.Text = "⚙";
+            this.gearButton.Image = global::MeshCentralRouter.Properties.Resources.Gear20;
+            this.gearButton.ImageAlign = System.Drawing.ContentAlignment.MiddleCenter;
+            this.gearButton.Text = "";
             this.gearButton.UseVisualStyleBackColor = true;
             this.gearButton.Click += new System.EventHandler(this.gearButton_Click);
             //
@@ -297,7 +369,9 @@ namespace MeshCentralRouter
             this.settingsPaneSettingsButton.Name = "settingsPaneSettingsButton";
             this.settingsPaneSettingsButton.Size = new System.Drawing.Size(140, 28);
             this.settingsPaneSettingsButton.TabIndex = 1;
-            this.settingsPaneSettingsButton.Text = "⚙  Remote Desktop";
+            this.settingsPaneSettingsButton.Image = global::MeshCentralRouter.Properties.Resources.Gear20;
+            this.settingsPaneSettingsButton.ImageAlign = System.Drawing.ContentAlignment.MiddleLeft;
+            this.settingsPaneSettingsButton.Text = "  Remote Desktop";
             this.settingsPaneSettingsButton.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
             this.settingsPaneSettingsButton.UseVisualStyleBackColor = true;
             this.settingsPaneSettingsButton.Click += new System.EventHandler(this.settingsToolStripMenuItem_Click);
@@ -312,7 +386,9 @@ namespace MeshCentralRouter
             this.settingsPaneStatsButton.Name = "settingsPaneStatsButton";
             this.settingsPaneStatsButton.Size = new System.Drawing.Size(140, 28);
             this.settingsPaneStatsButton.TabIndex = 2;
-            this.settingsPaneStatsButton.Text = "📊  Statistics";
+            this.settingsPaneStatsButton.Image = global::MeshCentralRouter.Properties.Resources.Statistics20;
+            this.settingsPaneStatsButton.ImageAlign = System.Drawing.ContentAlignment.MiddleLeft;
+            this.settingsPaneStatsButton.Text = "  Statistics";
             this.settingsPaneStatsButton.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
             this.settingsPaneStatsButton.UseVisualStyleBackColor = true;
             this.settingsPaneStatsButton.Click += new System.EventHandler(this.statsButton_Click);

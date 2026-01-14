@@ -24,6 +24,8 @@ namespace MeshCentralRouter
         private bool _checked = false;
         private Color _onColor = Color.FromArgb(76, 175, 80); // Green
         private Color _offColor = Color.LightGray;
+        private Color _thumbColor = Color.White;
+        private Color _trackBorderColor = Color.Empty;
         private Timer _animationTimer;
         private float _animationProgress = 0f;
 
@@ -68,6 +70,19 @@ namespace MeshCentralRouter
             set { _offColor = value; Invalidate(); }
         }
 
+        public Color ThumbColor
+        {
+            get { return _thumbColor; }
+            set { _thumbColor = value; Invalidate(); }
+        }
+
+        // Optional explicit border color for the track. If empty, a subtle border is auto-selected.
+        public Color TrackBorderColor
+        {
+            get { return _trackBorderColor; }
+            set { _trackBorderColor = value; Invalidate(); }
+        }
+
         private void StartAnimation()
         {
             _animationTimer.Start();
@@ -102,6 +117,9 @@ namespace MeshCentralRouter
             Graphics g = e.Graphics;
             g.SmoothingMode = SmoothingMode.AntiAlias;
 
+            // Clear background so the rounded corners don't show stale pixels.
+            g.Clear(this.BackColor);
+
             // Draw background track
             int trackHeight = this.Height;
             int trackWidth = this.Width;
@@ -114,6 +132,19 @@ namespace MeshCentralRouter
             using (GraphicsPath trackPath = GetRoundedRectangle(trackRect, trackHeight / 2))
             {
                 g.FillPath(trackBrush, trackPath);
+
+                Color borderColor = _trackBorderColor;
+                if (borderColor.IsEmpty)
+                {
+                    // Pick a subtle contrasting border depending on luminance.
+                    int luminance = (int)(0.2126 * currentColor.R + 0.7152 * currentColor.G + 0.0722 * currentColor.B);
+                    borderColor = (luminance < 128) ? Color.FromArgb(70, 255, 255, 255) : Color.FromArgb(70, 0, 0, 0);
+                }
+
+                using (Pen borderPen = new Pen(borderColor, 1))
+                {
+                    g.DrawPath(borderPen, trackPath);
+                }
             }
 
             // Draw thumb (the sliding circle)
@@ -124,7 +155,7 @@ namespace MeshCentralRouter
 
             Rectangle thumbRect = new Rectangle(thumbX, thumbOffset, thumbSize, thumbSize);
 
-            using (SolidBrush thumbBrush = new SolidBrush(Color.White))
+            using (SolidBrush thumbBrush = new SolidBrush(_thumbColor))
             using (GraphicsPath thumbPath = GetRoundedRectangle(thumbRect, thumbSize / 2))
             {
                 g.FillPath(thumbBrush, thumbPath);

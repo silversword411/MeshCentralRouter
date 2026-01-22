@@ -388,8 +388,8 @@ namespace MeshCentralRouter
             this.statsButton = new System.Windows.Forms.Button();
             this.settingsButton = new System.Windows.Forms.Button();
             this.zoomButton = new System.Windows.Forms.Button();
-            this.cadButton = new System.Windows.Forms.Button();
-            this.connectButton = new System.Windows.Forms.Button();
+            this.cadButton = new MeshCentralRouter.RoundedButton();
+            this.connectButton = new MeshCentralRouter.RoundedButton();
             this.consoleMessage = new System.Windows.Forms.Label();
             this.consoleTimer = new System.Windows.Forms.Timer(this.components);
             this.mainToolTip = new System.Windows.Forms.ToolTip(this.components);
@@ -413,6 +413,8 @@ namespace MeshCentralRouter
             this.titleBarPanel.Controls.Add(this.chatButton);
             this.titleBarPanel.Controls.Add(this.openRemoteFilesButton);
             this.titleBarPanel.Controls.Add(this.gearButton);
+            this.titleBarPanel.Controls.Add(this.cadButton);
+            this.titleBarPanel.Controls.Add(this.connectButton);
             this.titleBarPanel.Controls.Add(this.titleLabel);
             this.titleBarPanel.Dock = System.Windows.Forms.DockStyle.Top;
             this.titleBarPanel.Location = new System.Drawing.Point(0, 0);
@@ -498,6 +500,21 @@ namespace MeshCentralRouter
             this.gearButton.UseVisualStyleBackColor = true;
             this.gearButton.Click += new System.EventHandler(this.gearButton_Click);
             //
+            // connectButton - moved to titlebar as RoundedButton
+            //
+            this.connectButton.ContextMenuStrip = this.consentContextMenuStrip;
+            this.connectButton.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.connectButton.FlatAppearance.BorderSize = 0;
+            this.connectButton.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.connectButton.Location = new System.Drawing.Point(6, 3);
+            this.connectButton.Name = "connectButton";
+            this.connectButton.Size = new System.Drawing.Size(80, 26);
+            this.connectButton.TabIndex = 9;
+            this.connectButton.TabStop = false;
+            this.connectButton.Text = "Connect";
+            this.connectButton.UseVisualStyleBackColor = true;
+            this.connectButton.Click += new System.EventHandler(this.MenuItemDisconnect_Click);
+            //
             // dropdownPane - Container for dropdown panes that appear below the center panel
             //
             this.dropdownPane.Anchor = System.Windows.Forms.AnchorStyles.Top;
@@ -579,7 +596,7 @@ namespace MeshCentralRouter
             //
             this.titleLabel.AutoSize = true;
             this.titleLabel.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.titleLabel.Location = new System.Drawing.Point(8, 8);
+            this.titleLabel.Location = new System.Drawing.Point(148, 8);
             this.titleLabel.Name = "titleLabel";
             this.titleLabel.Size = new System.Drawing.Size(111, 15);
             this.titleLabel.TabIndex = 0;
@@ -622,10 +639,9 @@ namespace MeshCentralRouter
             this.topPanel.Controls.Add(this.splitButton);
             this.topPanel.Controls.Add(this.clipOutboundButton);
             this.topPanel.Controls.Add(this.clipInboundButton);
-            this.topPanel.Controls.Add(this.cadButton);
-            this.topPanel.Controls.Add(this.connectButton);
             resources.ApplyResources(this.topPanel, "topPanel");
             this.topPanel.Name = "topPanel";
+            this.topPanel.Visible = false;
             //
             // chatButton
             //
@@ -756,24 +772,21 @@ namespace MeshCentralRouter
             this.zoomButton.Text = "";
             this.zoomButton.UseVisualStyleBackColor = true;
             this.zoomButton.Click += new System.EventHandler(this.zoomButton_Click);
-            // 
-            // cadButton
-            // 
-            resources.ApplyResources(this.cadButton, "cadButton");
+            //
+            // cadButton - moved to titlebar as RoundedButton
+            //
+            this.cadButton.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.cadButton.FlatAppearance.BorderSize = 0;
+            this.cadButton.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.cadButton.Location = new System.Drawing.Point(92, 3);
             this.cadButton.Name = "cadButton";
+            this.cadButton.Size = new System.Drawing.Size(50, 26);
+            this.cadButton.TabIndex = 10;
             this.cadButton.TabStop = false;
+            this.cadButton.Text = "CAD";
             this.cadButton.UseVisualStyleBackColor = true;
             this.cadButton.Click += new System.EventHandler(this.sendCtrlAltDelToolStripMenuItem_Click);
-            // 
-            // connectButton
-            // 
-            this.connectButton.ContextMenuStrip = this.consentContextMenuStrip;
-            resources.ApplyResources(this.connectButton, "connectButton");
-            this.connectButton.Name = "connectButton";
-            this.connectButton.TabStop = false;
-            this.connectButton.UseVisualStyleBackColor = true;
-            this.connectButton.Click += new System.EventHandler(this.MenuItemDisconnect_Click);
-            // 
+            //
             // consoleMessage
             // 
             resources.ApplyResources(this.consoleMessage, "consoleMessage");
@@ -857,8 +870,8 @@ namespace MeshCentralRouter
         private KVMResizeControl resizeKvmControl;
         private ToolStripStatusLabel toolStripStatusLabel1;
         private Panel topPanel;
-        private Button connectButton;
-        private Button cadButton;
+        private RoundedButton connectButton;
+        private RoundedButton cadButton;
         private Button zoomButton;
         private Button settingsButton;
         private Label consoleMessage;

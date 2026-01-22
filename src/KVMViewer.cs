@@ -225,7 +225,6 @@ namespace MeshCentralRouter
         {
             this.Size = new Size(820, 480);
             resizeKvmControl.CenterKvmControl(false);
-            topPanel.Visible = true;
             CenterTitleBarControls();
 
             // Restore Window Location
@@ -1610,6 +1609,14 @@ namespace MeshCentralRouter
             // Update files button in title bar (same style as chat)
             openRemoteFilesButton.FillColor = theme.IsDarkMode ? Color.FromArgb(65, 65, 65) : Color.FromArgb(200, 200, 200);
             openRemoteFilesButton.ForeColor = titleBarTextColor;
+
+            // Update connect button in title bar (same style as chat)
+            connectButton.FillColor = theme.IsDarkMode ? Color.FromArgb(65, 65, 65) : Color.FromArgb(200, 200, 200);
+            connectButton.ForeColor = titleBarTextColor;
+
+            // Update CAD button in title bar (same style as chat)
+            cadButton.FillColor = theme.IsDarkMode ? Color.FromArgb(65, 65, 65) : Color.FromArgb(200, 200, 200);
+            cadButton.ForeColor = titleBarTextColor;
 
             // Update chat separator color
             chatSeparator.BackColor = theme.IsDarkMode ? Color.FromArgb(100, 100, 100) : Color.FromArgb(180, 180, 180);

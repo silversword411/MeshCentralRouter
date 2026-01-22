@@ -152,8 +152,7 @@ namespace MeshCentralRouter
             // Load status bar visibility preference
             bool statusBarVisible = Settings.GetRegValue("kvmStatusBarVisible", "1").Equals("1");
             mainStatusStrip.Visible = statusBarVisible;
-            statusBarToggleSwitch.Checked = statusBarVisible;
-            UpdateStatusBarToggleSwitch();
+            paneStatusBarToggleSwitch.Checked = statusBarVisible;
         }
 
         private void KvmControl_ScreenAreaUpdated(Bitmap desktop, Rectangle r)
@@ -563,9 +562,9 @@ namespace MeshCentralRouter
 
         private void CenterTitleBarControls()
         {
-            // Center the status bar toggle panel in the title bar
-            int centerX = (titleBarPanel.Width - statusBarTogglePanel.Width) / 2;
-            statusBarTogglePanel.Location = new Point(centerX, statusBarTogglePanel.Location.Y);
+            // Center the gear button in the title bar
+            int centerX = (titleBarPanel.Width - gearButton.Width) / 2;
+            gearButton.Location = new Point(centerX, gearButton.Location.Y);
 
             // Also center the dropdown pane if it's visible
             if (dropdownPane.Visible)
@@ -580,6 +579,7 @@ namespace MeshCentralRouter
             // Position buttons from the right edge moving left to avoid overlap
             int padding = 6;
             int spacing = 6;
+            int separatorSpacing = 8; // Spacing around the separator
             int y = closeButton.Location.Y;
             int x = titleBarPanel.Width - padding;
 
@@ -597,6 +597,23 @@ namespace MeshCentralRouter
 
             x -= spacing + zoomButton.Width;
             zoomButton.Location = new Point(x, y);
+
+            // Vertical separator line (80% of title bar height, centered vertically)
+            int separatorHeight = (int)(titleBarPanel.Height * 0.8);
+            int separatorY = (titleBarPanel.Height - separatorHeight) / 2;
+            x -= separatorSpacing;
+            chatSeparator.Size = new Size(1, separatorHeight);
+            chatSeparator.Location = new Point(x, separatorY);
+
+            // Chat button with spacing after separator (centered vertically)
+            x -= separatorSpacing + chatButton.Width;
+            int chatY = (titleBarPanel.Height - chatButton.Height) / 2;
+            chatButton.Location = new Point(x, chatY);
+
+            // Files button to the left of chat (with small spacing)
+            x -= spacing + openRemoteFilesButton.Width;
+            int filesY = (titleBarPanel.Height - openRemoteFilesButton.Height) / 2;
+            openRemoteFilesButton.Location = new Point(x, filesY);
         }
 
         private void UpdateMaximizeButtonIcon()
@@ -1004,47 +1021,122 @@ namespace MeshCentralRouter
 
         private void gearButton_Click(object sender, EventArgs e)
         {
-            // Create 1 column, 3 rows layout with 1 item per row
-            var layout = new DropdownPaneLayout(
-                columnsPerPane: 1,
-                rowsPerPane: 3,
-                itemsPerGroupRow: 1
-            );
+            // If clicking the same pane that's already open, close it
+            if (dropdownPane.Visible && dropdownPaneLabel.Text == "Settings")
+            {
+                HideDropdownPane();
+                return;
+            }
 
-            // First row: View Settings item (no section header)
-            var viewSettingsSection = new DropdownSection("");
-            var viewSettingsItem = new DropdownItem("⚙️", "View Settings", settingsToolStripMenuItem_Click);
-            viewSettingsSection.AddItem(viewSettingsItem);
-            var group1 = new DropdownGroup(viewSettingsSection);
+            // Set the title
+            dropdownPaneLabel.Text = "Settings";
 
-            // Second row: Statistics item with tooltip (no section header)
-            var statsSection = new DropdownSection("");
-            var statsItem = new DropdownItem("📊", "Statistics", statsButton_Click);
-            
-            // Create tooltip label
-            Label tooltipLabel = new Label();
-            tooltipLabel.Text = "ℹ️";
-            tooltipLabel.Font = new Font("Segoe UI", 8F);
-            tooltipLabel.AutoSize = true;
-            tooltipLabel.Cursor = Cursors.Help;
-            
-            // Add tooltip using ToolTip control
-            ToolTip tooltip = new ToolTip();
-            tooltip.SetToolTip(tooltipLabel, "Show Statistics");
-            
-            statsItem.HasHelperTooltip = true;
-            statsItem.HelperControl = tooltipLabel;
-            statsSection.AddItem(statsItem);
-            var group2 = new DropdownGroup(statsSection);
+            // Clear existing content
+            dropdownPaneContent.Controls.Clear();
 
-            // Third row: Status Bar toggle item (no section header)
-            var statusBarSection = new DropdownSection("");
-            var statusBarItem = new DropdownItem("📊", "Status Bar", statusBarToggleSwitch_CheckedChanged);
-            statusBarSection.AddItem(statusBarItem);
-            var group3 = new DropdownGroup(statusBarSection);
+            ThemeManager theme = ThemeManager.Instance;
+            Color paneBgColor = theme.IsDarkMode ? Color.FromArgb(45, 45, 45) : Color.FromArgb(250, 250, 250);
+            Color paneTextColor = theme.IsDarkMode ? Color.White : Color.Black;
+            Color paneHoverColor = theme.IsDarkMode ? Color.FromArgb(60, 60, 60) : Color.FromArgb(230, 230, 230);
+            Color borderColor = theme.IsDarkMode ? Color.FromArgb(80, 80, 80) : Color.FromArgb(200, 200, 200);
 
-            // Show the pane with grid layout
-            ShowDropdownPane("Settings", layout, group1, group2, group3);
+            int yOffset = 4;
+            int itemHeight = 28;
+            int paneWidth = 180;
+
+            // First row: View Settings button
+            Button settingsBtn = new Button();
+            settingsBtn.FlatStyle = FlatStyle.Flat;
+            settingsBtn.FlatAppearance.BorderSize = 1;
+            settingsBtn.FlatAppearance.BorderColor = borderColor;
+            settingsBtn.Font = new Font("Segoe UI", 8.5F);
+            settingsBtn.ForeColor = paneTextColor;
+            settingsBtn.BackColor = paneBgColor;
+            settingsBtn.FlatAppearance.MouseOverBackColor = paneHoverColor;
+            settingsBtn.Location = new Point(4, yOffset);
+            settingsBtn.Size = new Size(paneWidth - 10, itemHeight);
+            settingsBtn.TextAlign = ContentAlignment.MiddleLeft;
+            settingsBtn.Image = GetTintedIcon(Properties.Resources.Gear20, paneTextColor);
+            settingsBtn.ImageAlign = ContentAlignment.MiddleLeft;
+            settingsBtn.Text = "     View Settings";
+            settingsBtn.Click += settingsToolStripMenuItem_Click;
+            dropdownPaneContent.Controls.Add(settingsBtn);
+            yOffset += itemHeight + 4;
+
+            // Second row: Statistics button
+            Button statsBtn = new Button();
+            statsBtn.FlatStyle = FlatStyle.Flat;
+            statsBtn.FlatAppearance.BorderSize = 1;
+            statsBtn.FlatAppearance.BorderColor = borderColor;
+            statsBtn.Font = new Font("Segoe UI", 8.5F);
+            statsBtn.ForeColor = paneTextColor;
+            statsBtn.BackColor = paneBgColor;
+            statsBtn.FlatAppearance.MouseOverBackColor = paneHoverColor;
+            statsBtn.Location = new Point(4, yOffset);
+            statsBtn.Size = new Size(paneWidth - 10, itemHeight);
+            statsBtn.TextAlign = ContentAlignment.MiddleLeft;
+            statsBtn.Image = GetTintedIcon(Properties.Resources.Statistics20, paneTextColor);
+            statsBtn.ImageAlign = ContentAlignment.MiddleLeft;
+            statsBtn.Text = "     Statistics";
+            statsBtn.Click += statsButton_Click;
+            dropdownPaneContent.Controls.Add(statsBtn);
+            yOffset += itemHeight + 4;
+
+            // Third row: Status Bar toggle with label and switch
+            Panel statusBarRow = new Panel();
+            statusBarRow.Location = new Point(4, yOffset);
+            statusBarRow.Size = new Size(paneWidth - 10, itemHeight);
+            statusBarRow.BackColor = paneBgColor;
+
+            Label statusBarLabel = new Label();
+            statusBarLabel.Text = "Status Bar";
+            statusBarLabel.Font = new Font("Segoe UI", 8.5F);
+            statusBarLabel.ForeColor = paneTextColor;
+            statusBarLabel.Location = new Point(4, 6);
+            statusBarLabel.AutoSize = true;
+            statusBarRow.Controls.Add(statusBarLabel);
+
+            // Position the toggle switch on the right side of the row
+            paneStatusBarToggleSwitch.Location = new Point(paneWidth - 60, 4);
+            paneStatusBarToggleSwitch.Size = new Size(40, 20);
+            // Update toggle colors based on theme
+            if (theme.IsDarkMode)
+            {
+                paneStatusBarToggleSwitch.OffColor = Color.FromArgb(90, 90, 90);
+                paneStatusBarToggleSwitch.OnColor = Color.FromArgb(76, 175, 80);
+                paneStatusBarToggleSwitch.ThumbColor = Color.FromArgb(235, 235, 235);
+                paneStatusBarToggleSwitch.BackColor = paneBgColor;
+            }
+            else
+            {
+                paneStatusBarToggleSwitch.OffColor = Color.LightGray;
+                paneStatusBarToggleSwitch.OnColor = Color.FromArgb(76, 175, 80);
+                paneStatusBarToggleSwitch.ThumbColor = Color.White;
+                paneStatusBarToggleSwitch.BackColor = paneBgColor;
+            }
+            statusBarRow.Controls.Add(paneStatusBarToggleSwitch);
+
+            dropdownPaneContent.Controls.Add(statusBarRow);
+            yOffset += itemHeight + 4;
+
+            // Calculate pane size
+            int contentHeight = yOffset;
+            dropdownPane.Size = new Size(paneWidth, 28 + contentHeight);
+            dropdownPaneContent.Size = new Size(paneWidth - 2, contentHeight);
+
+            // Position the dropdown centered under the gear button
+            int centerX = (this.Width - dropdownPane.Width) / 2;
+            int paneY = titleBarPanel.Bottom;
+            dropdownPane.Location = new Point(centerX, paneY);
+
+            // Show and bring to front
+            dropdownPane.Visible = true;
+            dropdownPane.BringToFront();
+
+            // Apply theme to the container
+            dropdownPane.BackColor = paneBgColor;
+            dropdownPaneLabel.ForeColor = paneTextColor;
+            dropdownPaneContent.BackColor = paneBgColor;
         }
 
         private void ShowDropdownPane(string title, params Control[] contentControls)
@@ -1468,32 +1560,8 @@ namespace MeshCentralRouter
 
         private void statusBarToggleSwitch_CheckedChanged(object sender, EventArgs e)
         {
-            mainStatusStrip.Visible = statusBarToggleSwitch.Checked;
-            Settings.SetRegValue("kvmStatusBarVisible", statusBarToggleSwitch.Checked ? "1" : "0");
-            UpdateStatusBarToggleSwitch();
-        }
-
-        private void UpdateStatusBarToggleSwitch()
-        {
-            // Update colors based on theme
-            ThemeManager theme = ThemeManager.Instance;
-            // Make sure the toggle blends with the titlebar center panel (rounded corners)
-            statusBarToggleSwitch.BackColor = titleBarPanel.CenterColor;
-
-            if (theme.IsDarkMode)
-            {
-                statusBarToggleSwitch.OffColor = Color.FromArgb(90, 90, 90);
-                statusBarToggleSwitch.OnColor = Color.FromArgb(76, 175, 80); // Green
-                statusBarToggleSwitch.ThumbColor = Color.FromArgb(235, 235, 235);
-                statusBarToggleSwitch.TrackBorderColor = Color.FromArgb(90, 0, 0, 0);
-            }
-            else
-            {
-                statusBarToggleSwitch.OffColor = Color.LightGray;
-                statusBarToggleSwitch.OnColor = Color.FromArgb(76, 175, 80); // Green
-                statusBarToggleSwitch.ThumbColor = Color.White;
-                statusBarToggleSwitch.TrackBorderColor = Color.FromArgb(60, 0, 0, 0);
-            }
+            mainStatusStrip.Visible = paneStatusBarToggleSwitch.Checked;
+            Settings.SetRegValue("kvmStatusBarVisible", paneStatusBarToggleSwitch.Checked ? "1" : "0");
         }
 
         private void ThemeManager_ThemeChanged(object sender, EventArgs e)
@@ -1535,22 +1603,27 @@ namespace MeshCentralRouter
             closeButton.ForeColor = titleBarTextColor;
             closeButton.FlatAppearance.MouseOverBackColor = Color.FromArgb(232, 17, 35);
 
+            // Update chat button in title bar (use center panel color for pill background)
+            chatButton.FillColor = theme.IsDarkMode ? Color.FromArgb(65, 65, 65) : Color.FromArgb(200, 200, 200);
+            chatButton.ForeColor = titleBarTextColor;
+
+            // Update files button in title bar (same style as chat)
+            openRemoteFilesButton.FillColor = theme.IsDarkMode ? Color.FromArgb(65, 65, 65) : Color.FromArgb(200, 200, 200);
+            openRemoteFilesButton.ForeColor = titleBarTextColor;
+
+            // Update chat separator color
+            chatSeparator.BackColor = theme.IsDarkMode ? Color.FromArgb(100, 100, 100) : Color.FromArgb(180, 180, 180);
+
             // Update dropdown pane
             UpdateDropdownPaneTheme();
 
-            // Match the center panel color so child controls (toggle rounded corners) render cleanly.
-            statusBarTogglePanel.BackColor = titleBarPanel.CenterColor;
-            statusBarLabel.ForeColor = titleBarTextColor;
-
-            // Update gear button in center panel
-            gearButton.BackColor = titleBarPanel.CenterColor;
+            // Update gear button in title bar (centered)
+            gearButton.BackColor = titleBarColor;
             gearButton.ForeColor = titleBarTextColor;
-            gearButton.FlatAppearance.MouseOverBackColor = theme.IsDarkMode ? Color.FromArgb(50, 50, 50) : Color.FromArgb(180, 180, 180);
+            gearButton.FlatAppearance.MouseOverBackColor = theme.GetButtonHoverColor();
             // Use a tinted Material icon so it stays readable in both themes
             gearButton.Image = GetTintedIcon(Properties.Resources.Gear20, titleBarTextColor);
             gearButton.Text = "";
-
-            UpdateStatusBarToggleSwitch();
 
             // Update theme button icon based on current theme (use Material Design icons)
             if (theme.IsDarkMode)

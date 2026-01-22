@@ -91,6 +91,92 @@ namespace MeshCentralRouter
     }
 
     /// <summary>
+    /// A button with a rounded rectangle (pill-shaped) background
+    /// </summary>
+    public class RoundedButton : System.Windows.Forms.Button
+    {
+        private System.Drawing.Color fillColor = System.Drawing.Color.FromArgb(65, 65, 65);
+        private int cornerRadius = 12;
+
+        public System.Drawing.Color FillColor
+        {
+            get { return fillColor; }
+            set { fillColor = value; Invalidate(); }
+        }
+
+        public int CornerRadius
+        {
+            get { return cornerRadius; }
+            set { cornerRadius = value; Invalidate(); }
+        }
+
+        public RoundedButton()
+        {
+            this.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.FlatAppearance.BorderSize = 0;
+            this.SetStyle(System.Windows.Forms.ControlStyles.AllPaintingInWmPaint |
+                         System.Windows.Forms.ControlStyles.UserPaint |
+                         System.Windows.Forms.ControlStyles.OptimizedDoubleBuffer, true);
+        }
+
+        protected override void OnPaint(PaintEventArgs e)
+        {
+            // Clear background with parent's back color (transparent effect)
+            if (this.Parent != null)
+            {
+                using (System.Drawing.SolidBrush bgBrush = new System.Drawing.SolidBrush(this.Parent.BackColor))
+                {
+                    e.Graphics.FillRectangle(bgBrush, this.ClientRectangle);
+                }
+            }
+
+            e.Graphics.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
+
+            // Inset by 1 pixel on all sides to ensure curves are fully visible
+            int inset = 1;
+            int width = this.Width - (inset * 2);
+            int height = this.Height - (inset * 2);
+
+            // Create rounded rectangle path
+            using (System.Drawing.Drawing2D.GraphicsPath path = new System.Drawing.Drawing2D.GraphicsPath())
+            {
+                int diameter = System.Math.Min(cornerRadius * 2, System.Math.Min(width, height));
+                System.Drawing.Rectangle arc = new System.Drawing.Rectangle(inset, inset, diameter, diameter);
+
+                // Top left arc
+                path.AddArc(arc, 180, 90);
+                // Top right arc
+                arc.X = inset + width - diameter;
+                path.AddArc(arc, 270, 90);
+                // Bottom right arc
+                arc.Y = inset + height - diameter;
+                path.AddArc(arc, 0, 90);
+                // Bottom left arc
+                arc.X = inset;
+                path.AddArc(arc, 90, 90);
+
+                path.CloseFigure();
+
+                // Fill the rounded rectangle
+                using (System.Drawing.SolidBrush brush = new System.Drawing.SolidBrush(fillColor))
+                {
+                    e.Graphics.FillPath(brush, path);
+                }
+            }
+
+            // Draw the text centered
+            System.Windows.Forms.TextRenderer.DrawText(
+                e.Graphics,
+                this.Text,
+                this.Font,
+                new System.Drawing.Rectangle(0, 0, this.Width, this.Height),
+                this.ForeColor,
+                System.Windows.Forms.TextFormatFlags.HorizontalCenter | System.Windows.Forms.TextFormatFlags.VerticalCenter
+            );
+        }
+    }
+
+    /// <summary>
     /// Specifies the position of an icon relative to the item text
     /// </summary>
     public enum IconPosition
@@ -276,9 +362,7 @@ namespace MeshCentralRouter
             this.minimizeButton = new System.Windows.Forms.Button();
             this.gearButton = new System.Windows.Forms.Button();
             this.themeButton = new System.Windows.Forms.Button();
-            this.statusBarTogglePanel = new System.Windows.Forms.Panel();
-            this.statusBarLabel = new System.Windows.Forms.Label();
-            this.statusBarToggleSwitch = new MeshCentralRouter.ToggleSwitch();
+            this.paneStatusBarToggleSwitch = new MeshCentralRouter.ToggleSwitch();
             this.titleLabel = new System.Windows.Forms.Label();
             this.dropdownPane = new System.Windows.Forms.Panel();
             this.dropdownPaneContent = new System.Windows.Forms.Panel();
@@ -290,12 +374,13 @@ namespace MeshCentralRouter
             this.toolStripStatusLabel1 = new System.Windows.Forms.ToolStripStatusLabel();
             this.updateTimer = new System.Windows.Forms.Timer(this.components);
             this.topPanel = new System.Windows.Forms.Panel();
-            this.chatButton = new System.Windows.Forms.Button();
+            this.chatButton = new MeshCentralRouter.RoundedButton();
+            this.chatSeparator = new System.Windows.Forms.Panel();
             this.consentContextMenuStrip = new System.Windows.Forms.ContextMenuStrip(this.components);
             this.askConsentBarToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.askConsentToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.privacyBarToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
-            this.openRemoteFilesButton = new System.Windows.Forms.Button();
+            this.openRemoteFilesButton = new MeshCentralRouter.RoundedButton();
             this.extraButtonsPanel = new System.Windows.Forms.Panel();
             this.splitButton = new System.Windows.Forms.Button();
             this.clipOutboundButton = new System.Windows.Forms.Button();
@@ -311,7 +396,6 @@ namespace MeshCentralRouter
             this.displaySelectorImageList = new System.Windows.Forms.ImageList(this.components);
             this.resizeKvmControl = new MeshCentralRouter.KVMResizeControl();
             this.titleBarPanel.SuspendLayout();
-            this.statusBarTogglePanel.SuspendLayout();
             this.mainStatusStrip.SuspendLayout();
             this.topPanel.SuspendLayout();
             this.consentContextMenuStrip.SuspendLayout();
@@ -325,7 +409,10 @@ namespace MeshCentralRouter
             this.titleBarPanel.Controls.Add(this.minimizeButton);
             this.titleBarPanel.Controls.Add(this.themeButton);
             this.titleBarPanel.Controls.Add(this.zoomButton);
-            this.titleBarPanel.Controls.Add(this.statusBarTogglePanel);
+            this.titleBarPanel.Controls.Add(this.chatSeparator);
+            this.titleBarPanel.Controls.Add(this.chatButton);
+            this.titleBarPanel.Controls.Add(this.openRemoteFilesButton);
+            this.titleBarPanel.Controls.Add(this.gearButton);
             this.titleBarPanel.Controls.Add(this.titleLabel);
             this.titleBarPanel.Dock = System.Windows.Forms.DockStyle.Top;
             this.titleBarPanel.Location = new System.Drawing.Point(0, 0);
@@ -397,12 +484,13 @@ namespace MeshCentralRouter
             //
             // gearButton
             //
+            this.gearButton.Anchor = System.Windows.Forms.AnchorStyles.Top;
             this.gearButton.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
             this.gearButton.FlatAppearance.BorderSize = 0;
             this.gearButton.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.gearButton.Location = new System.Drawing.Point(100, -2);
+            this.gearButton.Location = new System.Drawing.Point(384, 4);
             this.gearButton.Name = "gearButton";
-            this.gearButton.Size = new System.Drawing.Size(28, 24);
+            this.gearButton.Size = new System.Drawing.Size(32, 24);
             this.gearButton.TabIndex = 5;
             this.gearButton.Image = global::MeshCentralRouter.Properties.Resources.Gear20;
             this.gearButton.ImageAlign = System.Drawing.ContentAlignment.MiddleCenter;
@@ -476,37 +564,16 @@ namespace MeshCentralRouter
             this.settingsPaneStatsButton.UseVisualStyleBackColor = true;
             this.settingsPaneStatsButton.Click += new System.EventHandler(this.statsButton_Click);
             //
-            // statusBarTogglePanel
+            // paneStatusBarToggleSwitch - StatusBar toggle for use in dropdown pane
             //
-            this.statusBarTogglePanel.Anchor = System.Windows.Forms.AnchorStyles.Top;
-            this.statusBarTogglePanel.Controls.Add(this.gearButton);
-            this.statusBarTogglePanel.Controls.Add(this.statusBarLabel);
-            this.statusBarTogglePanel.Controls.Add(this.statusBarToggleSwitch);
-            this.statusBarTogglePanel.Location = new System.Drawing.Point(345, 6);
-            this.statusBarTogglePanel.Name = "statusBarTogglePanel";
-            this.statusBarTogglePanel.Size = new System.Drawing.Size(130, 22);
-            this.statusBarTogglePanel.TabIndex = 4;
-            //
-            // statusBarToggleSwitch
-            //
-            this.statusBarToggleSwitch.Checked = false;
-            this.statusBarToggleSwitch.Location = new System.Drawing.Point(0, 0);
-            this.statusBarToggleSwitch.Name = "statusBarToggleSwitch";
-            this.statusBarToggleSwitch.OffColor = System.Drawing.Color.LightGray;
-            this.statusBarToggleSwitch.OnColor = System.Drawing.Color.FromArgb(((int)(((byte)(76)))), ((int)(((byte)(175)))), ((int)(((byte)(80)))));
-            this.statusBarToggleSwitch.Size = new System.Drawing.Size(26, 15);
-            this.statusBarToggleSwitch.TabIndex = 0;
-            this.statusBarToggleSwitch.CheckedChanged += new System.EventHandler(this.statusBarToggleSwitch_CheckedChanged);
-            //
-            // statusBarLabel
-            //
-            this.statusBarLabel.AutoSize = true;
-            this.statusBarLabel.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.statusBarLabel.Location = new System.Drawing.Point(35, 1);
-            this.statusBarLabel.Name = "statusBarLabel";
-            this.statusBarLabel.Size = new System.Drawing.Size(59, 15);
-            this.statusBarLabel.TabIndex = 1;
-            this.statusBarLabel.Text = "Statusbar";
+            this.paneStatusBarToggleSwitch.Checked = false;
+            this.paneStatusBarToggleSwitch.Location = new System.Drawing.Point(0, 0);
+            this.paneStatusBarToggleSwitch.Name = "paneStatusBarToggleSwitch";
+            this.paneStatusBarToggleSwitch.OffColor = System.Drawing.Color.LightGray;
+            this.paneStatusBarToggleSwitch.OnColor = System.Drawing.Color.FromArgb(((int)(((byte)(76)))), ((int)(((byte)(175)))), ((int)(((byte)(80)))));
+            this.paneStatusBarToggleSwitch.Size = new System.Drawing.Size(40, 20);
+            this.paneStatusBarToggleSwitch.TabIndex = 0;
+            this.paneStatusBarToggleSwitch.CheckedChanged += new System.EventHandler(this.statusBarToggleSwitch_CheckedChanged);
             //
             // titleLabel
             //
@@ -547,12 +614,10 @@ namespace MeshCentralRouter
             this.updateTimer.Enabled = true;
             this.updateTimer.Interval = 1000;
             this.updateTimer.Tick += new System.EventHandler(this.updateTimer_Tick);
-            // 
+            //
             // topPanel
-            // 
+            //
             this.topPanel.BackColor = System.Drawing.SystemColors.Control;
-            this.topPanel.Controls.Add(this.chatButton);
-            this.topPanel.Controls.Add(this.openRemoteFilesButton);
             this.topPanel.Controls.Add(this.extraButtonsPanel);
             this.topPanel.Controls.Add(this.splitButton);
             this.topPanel.Controls.Add(this.clipOutboundButton);
@@ -561,16 +626,30 @@ namespace MeshCentralRouter
             this.topPanel.Controls.Add(this.connectButton);
             resources.ApplyResources(this.topPanel, "topPanel");
             this.topPanel.Name = "topPanel";
-            // 
+            //
             // chatButton
-            // 
-            this.chatButton.ContextMenuStrip = this.consentContextMenuStrip;
-            resources.ApplyResources(this.chatButton, "chatButton");
+            //
+            this.chatButton.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
+            this.chatButton.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.chatButton.FlatAppearance.BorderSize = 0;
+            this.chatButton.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.chatButton.Location = new System.Drawing.Point(627, 2);
             this.chatButton.Name = "chatButton";
-            this.chatButton.TabStop = false;
+            this.chatButton.Size = new System.Drawing.Size(56, 26);
+            this.chatButton.TabIndex = 6;
+            this.chatButton.Text = "Chat";
             this.chatButton.UseVisualStyleBackColor = true;
             this.chatButton.Click += new System.EventHandler(this.chatButton_Click);
-            // 
+            //
+            // chatSeparator
+            //
+            this.chatSeparator.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
+            this.chatSeparator.BackColor = System.Drawing.Color.Gray;
+            this.chatSeparator.Location = new System.Drawing.Point(580, 3);
+            this.chatSeparator.Name = "chatSeparator";
+            this.chatSeparator.Size = new System.Drawing.Size(1, 26);
+            this.chatSeparator.TabIndex = 7;
+            //
             // consentContextMenuStrip
             // 
             this.consentContextMenuStrip.ImageScalingSize = new System.Drawing.Size(20, 20);
@@ -599,12 +678,18 @@ namespace MeshCentralRouter
             this.privacyBarToolStripMenuItem.Name = "privacyBarToolStripMenuItem";
             resources.ApplyResources(this.privacyBarToolStripMenuItem, "privacyBarToolStripMenuItem");
             this.privacyBarToolStripMenuItem.Click += new System.EventHandler(this.privacyBarToolStripMenuItem_Click);
-            // 
+            //
             // openRemoteFilesButton
-            // 
-            resources.ApplyResources(this.openRemoteFilesButton, "openRemoteFilesButton");
+            //
+            this.openRemoteFilesButton.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
+            this.openRemoteFilesButton.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.openRemoteFilesButton.FlatAppearance.BorderSize = 0;
+            this.openRemoteFilesButton.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.openRemoteFilesButton.Location = new System.Drawing.Point(560, 2);
             this.openRemoteFilesButton.Name = "openRemoteFilesButton";
-            this.openRemoteFilesButton.TabStop = false;
+            this.openRemoteFilesButton.Size = new System.Drawing.Size(56, 26);
+            this.openRemoteFilesButton.TabIndex = 8;
+            this.openRemoteFilesButton.Text = "Files";
             this.openRemoteFilesButton.UseVisualStyleBackColor = true;
             this.openRemoteFilesButton.Click += new System.EventHandler(this.openRemoteFilesButton_Click);
             // 
@@ -741,8 +826,6 @@ namespace MeshCentralRouter
             this.Resize += new System.EventHandler(this.MainForm_Resize);
             this.dropdownPane.ResumeLayout(false);
             this.dropdownPane.PerformLayout();
-            this.statusBarTogglePanel.ResumeLayout(false);
-            this.statusBarTogglePanel.PerformLayout();
             this.titleBarPanel.ResumeLayout(false);
             this.titleBarPanel.PerformLayout();
             this.mainStatusStrip.ResumeLayout(false);
@@ -764,9 +847,7 @@ namespace MeshCentralRouter
         private Button settingsPaneSettingsButton;
         private Button settingsPaneStatsButton;
         private Label dropdownPaneLabel;
-        private Panel statusBarTogglePanel;
-        private ToggleSwitch statusBarToggleSwitch;
-        private Label statusBarLabel;
+        private ToggleSwitch paneStatusBarToggleSwitch;
         private Button minimizeButton;
         private Button maximizeButton;
         private Button closeButton;
@@ -793,8 +874,9 @@ namespace MeshCentralRouter
         private Button splitButton;
         private Panel extraButtonsPanel;
         private ImageList displaySelectorImageList;
-        private Button openRemoteFilesButton;
-        private Button chatButton;
+        private RoundedButton openRemoteFilesButton;
+        private RoundedButton chatButton;
+        private Panel chatSeparator;
     }
 }
 

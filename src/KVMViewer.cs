@@ -1309,10 +1309,22 @@ namespace MeshCentralRouter
             Color borderColor = theme.IsDarkMode ? Color.FromArgb(80, 80, 80) : Color.FromArgb(200, 200, 200);
 
             int yOffset = 4;
+            int sectionHeaderHeight = 22;
             int itemHeight = 28;
-            int paneWidth = 180;
+            int paneWidth = 220;
+            int sidePadding = 8;
 
-            // First row: View Settings button
+            // === Actions Section ===
+            Label actionsHeader = new Label();
+            actionsHeader.Text = "Actions";
+            actionsHeader.Font = new Font("Segoe UI", 8.5F, FontStyle.Bold);
+            actionsHeader.ForeColor = paneTextColor;
+            actionsHeader.Location = new Point(sidePadding, yOffset);
+            actionsHeader.Size = new Size(paneWidth - (sidePadding * 2), sectionHeaderHeight);
+            dropdownPaneContent.Controls.Add(actionsHeader);
+            yOffset += sectionHeaderHeight;
+
+            // View Settings button
             Button settingsBtn = new Button();
             settingsBtn.FlatStyle = FlatStyle.Flat;
             settingsBtn.FlatAppearance.BorderSize = 1;
@@ -1321,32 +1333,42 @@ namespace MeshCentralRouter
             settingsBtn.ForeColor = paneTextColor;
             settingsBtn.BackColor = paneBgColor;
             settingsBtn.FlatAppearance.MouseOverBackColor = paneHoverColor;
-            settingsBtn.Location = new Point(4, yOffset);
-            settingsBtn.Size = new Size(paneWidth - 10, itemHeight);
+            settingsBtn.Location = new Point(sidePadding, yOffset);
+            settingsBtn.Size = new Size(paneWidth - (sidePadding * 2), itemHeight);
             settingsBtn.TextAlign = ContentAlignment.MiddleLeft;
             settingsBtn.Image = GetTintedIcon(Properties.Resources.Gear20, paneTextColor);
             settingsBtn.ImageAlign = ContentAlignment.MiddleLeft;
             settingsBtn.Text = "     View Settings";
             settingsBtn.Click += settingsToolStripMenuItem_Click;
             dropdownPaneContent.Controls.Add(settingsBtn);
-            yOffset += itemHeight + 4;
+            yOffset += itemHeight + 8;
 
-            // Second row: Status Bar toggle with label and switch
+            // === View Section ===
+            Label viewHeader = new Label();
+            viewHeader.Text = "View";
+            viewHeader.Font = new Font("Segoe UI", 8.5F, FontStyle.Bold);
+            viewHeader.ForeColor = paneTextColor;
+            viewHeader.Location = new Point(sidePadding, yOffset);
+            viewHeader.Size = new Size(paneWidth - (sidePadding * 2), sectionHeaderHeight);
+            dropdownPaneContent.Controls.Add(viewHeader);
+            yOffset += sectionHeaderHeight;
+
+            // Status Bar toggle row
             Panel statusBarRow = new Panel();
-            statusBarRow.Location = new Point(4, yOffset);
-            statusBarRow.Size = new Size(paneWidth - 10, itemHeight);
+            statusBarRow.Location = new Point(sidePadding, yOffset);
+            statusBarRow.Size = new Size(paneWidth - (sidePadding * 2), itemHeight);
             statusBarRow.BackColor = paneBgColor;
 
             Label statusBarLabel = new Label();
             statusBarLabel.Text = "Status Bar";
             statusBarLabel.Font = new Font("Segoe UI", 8.5F);
             statusBarLabel.ForeColor = paneTextColor;
-            statusBarLabel.Location = new Point(4, 6);
+            statusBarLabel.Location = new Point(0, 6);
             statusBarLabel.AutoSize = true;
             statusBarRow.Controls.Add(statusBarLabel);
 
             // Position the toggle switch on the right side of the row
-            paneStatusBarToggleSwitch.Location = new Point(paneWidth - 60, 4);
+            paneStatusBarToggleSwitch.Location = new Point(statusBarRow.Width - 44, 4);
             paneStatusBarToggleSwitch.Size = new Size(40, 20);
             // Update toggle colors based on theme
             if (theme.IsDarkMode)

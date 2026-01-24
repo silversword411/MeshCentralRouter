@@ -127,6 +127,7 @@ namespace MeshCentralRouter
             mainToolTip.SetToolTip(clipInboundButton, Translate.T(Properties.Resources.PullClipboardFromRemoteDevice, lang));
             mainToolTip.SetToolTip(zoomButton, Translate.T(Properties.Resources.ToggleZoomToFitMode, lang));
             mainToolTip.SetToolTip(statsButton, Translate.T(Properties.Resources.DisplayConnectionStatistics, lang));
+            mainToolTip.SetToolTip(infoButton, Translate.T(Properties.Resources.DisplayConnectionStatistics, lang));
 
             // Load remote desktop settings
             int CompressionLevel = 60;
@@ -561,9 +562,12 @@ namespace MeshCentralRouter
 
         private void CenterTitleBarControls()
         {
-            // Center the gear button in the title bar
-            int centerX = (titleBarPanel.Width - gearButton.Width) / 2;
-            gearButton.Location = new Point(centerX, gearButton.Location.Y);
+            // Center the gear and info buttons in the title bar (with small spacing between them)
+            int spacing = 4;
+            int totalWidth = gearButton.Width + spacing + infoButton.Width;
+            int startX = (titleBarPanel.Width - totalWidth) / 2;
+            gearButton.Location = new Point(startX, gearButton.Location.Y);
+            infoButton.Location = new Point(startX + gearButton.Width + spacing, infoButton.Location.Y);
 
             // Also center the dropdown pane if it's visible
             if (dropdownPane.Visible)
@@ -1018,6 +1022,172 @@ namespace MeshCentralRouter
             ThemeManager.Instance.IsDarkMode = !ThemeManager.Instance.IsDarkMode;
         }
 
+        private void infoButton_Click(object sender, EventArgs e)
+        {
+            // If clicking the same pane that's already open, close it
+            if (dropdownPane.Visible && dropdownPaneLabel.Text == "Statistics")
+            {
+                HideDropdownPane();
+                statisticsRefreshTimer.Enabled = false;
+                return;
+            }
+
+            // Set the title
+            dropdownPaneLabel.Text = "Statistics";
+
+            // Clear existing content
+            dropdownPaneContent.Controls.Clear();
+
+            ThemeManager theme = ThemeManager.Instance;
+            Color paneBgColor = theme.IsDarkMode ? Color.FromArgb(45, 45, 45) : Color.FromArgb(250, 250, 250);
+            Color paneTextColor = theme.IsDarkMode ? Color.White : Color.Black;
+            Color labelColor = theme.IsDarkMode ? Color.FromArgb(180, 180, 180) : Color.FromArgb(100, 100, 100);
+
+            int yOffset = 4;
+            int rowHeight = 20;
+            int paneWidth = 220;
+            int labelWidth = 90;
+            int valueWidth = paneWidth - labelWidth - 16;
+
+            // Helper function to create a stats row
+            Action<string, Label> addStatsRow = (labelText, valueLabel) =>
+            {
+                Label lbl = new Label();
+                lbl.Text = labelText;
+                lbl.Font = new Font("Segoe UI", 8.5F);
+                lbl.ForeColor = labelColor;
+                lbl.Location = new Point(8, yOffset);
+                lbl.Size = new Size(labelWidth, rowHeight);
+                lbl.TextAlign = ContentAlignment.MiddleLeft;
+                dropdownPaneContent.Controls.Add(lbl);
+
+                valueLabel.Font = new Font("Segoe UI", 8.5F);
+                valueLabel.ForeColor = paneTextColor;
+                valueLabel.Location = new Point(labelWidth + 8, yOffset);
+                valueLabel.Size = new Size(valueWidth, rowHeight);
+                valueLabel.TextAlign = ContentAlignment.MiddleRight;
+                dropdownPaneContent.Controls.Add(valueLabel);
+
+                yOffset += rowHeight + 2;
+            };
+
+            // Data Transfer section header
+            Label dataHeader = new Label();
+            dataHeader.Text = "Data Transfer";
+            dataHeader.Font = new Font("Segoe UI", 8.5F, FontStyle.Bold);
+            dataHeader.ForeColor = paneTextColor;
+            dataHeader.Location = new Point(8, yOffset);
+            dataHeader.Size = new Size(paneWidth - 16, rowHeight);
+            dropdownPaneContent.Controls.Add(dataHeader);
+            yOffset += rowHeight + 4;
+
+            // Create value labels
+            statsBytesInValueLabel = new Label();
+            statsBytesOutValueLabel = new Label();
+            statsCompInValueLabel = new Label();
+            statsCompOutValueLabel = new Label();
+            statsInRatioValueLabel = new Label();
+            statsOutRatioValueLabel = new Label();
+
+            addStatsRow("Bytes In:", statsBytesInValueLabel);
+            addStatsRow("Bytes Out:", statsBytesOutValueLabel);
+
+            yOffset += 6; // Add spacing before compression section
+
+            // Compression section header
+            Label compHeader = new Label();
+            compHeader.Text = "Compression";
+            compHeader.Font = new Font("Segoe UI", 8.5F, FontStyle.Bold);
+            compHeader.ForeColor = paneTextColor;
+            compHeader.Location = new Point(8, yOffset);
+            compHeader.Size = new Size(paneWidth - 16, rowHeight);
+            dropdownPaneContent.Controls.Add(compHeader);
+            yOffset += rowHeight + 4;
+
+            addStatsRow("Compressed In:", statsCompInValueLabel);
+            addStatsRow("Compressed Out:", statsCompOutValueLabel);
+            addStatsRow("In Ratio:", statsInRatioValueLabel);
+            addStatsRow("Out Ratio:", statsOutRatioValueLabel);
+
+            yOffset += 4;
+
+            // Calculate pane size
+            int contentHeight = yOffset;
+            dropdownPane.Size = new Size(paneWidth, 28 + contentHeight);
+            dropdownPaneContent.Size = new Size(paneWidth - 2, contentHeight);
+
+            // Position the dropdown centered under the info button
+            int centerX = (this.Width - dropdownPane.Width) / 2;
+            int paneY = titleBarPanel.Bottom;
+            dropdownPane.Location = new Point(centerX, paneY);
+
+            // Show and bring to front
+            dropdownPane.Visible = true;
+            dropdownPane.BringToFront();
+
+            // Apply theme to the container
+            dropdownPane.BackColor = paneBgColor;
+            dropdownPaneLabel.ForeColor = paneTextColor;
+            dropdownPaneContent.BackColor = paneBgColor;
+
+            // Update statistics immediately and start refresh timer
+            UpdateStatisticsDisplay();
+            statisticsRefreshTimer.Enabled = true;
+        }
+
+        private void statisticsRefreshTimer_Tick(object sender, EventArgs e)
+        {
+            // Only update if the statistics pane is visible
+            if (dropdownPane.Visible && dropdownPaneLabel.Text == "Statistics")
+            {
+                UpdateStatisticsDisplay();
+            }
+            else
+            {
+                statisticsRefreshTimer.Enabled = false;
+            }
+        }
+
+        private void UpdateStatisticsDisplay()
+        {
+            if (statsBytesInValueLabel == null) return;
+
+            statsBytesInValueLabel.Text = FormatBytes(bytesIn);
+            statsBytesOutValueLabel.Text = FormatBytes(bytesOut);
+            statsCompInValueLabel.Text = FormatBytes(bytesInCompressed);
+            statsCompOutValueLabel.Text = FormatBytes(bytesOutCompressed);
+
+            if (bytesIn == 0)
+            {
+                statsInRatioValueLabel.Text = "0%";
+            }
+            else
+            {
+                statsInRatioValueLabel.Text = (100 - ((bytesInCompressed * 100) / bytesIn)) + "%";
+            }
+
+            if (bytesOut == 0)
+            {
+                statsOutRatioValueLabel.Text = "0%";
+            }
+            else
+            {
+                statsOutRatioValueLabel.Text = (100 - ((bytesOutCompressed * 100) / bytesOut)) + "%";
+            }
+        }
+
+        private string FormatBytes(long bytes)
+        {
+            if (bytes < 1024)
+                return bytes + " B";
+            else if (bytes < 1024 * 1024)
+                return (bytes / 1024.0).ToString("F1") + " KB";
+            else if (bytes < 1024 * 1024 * 1024)
+                return (bytes / (1024.0 * 1024)).ToString("F1") + " MB";
+            else
+                return (bytes / (1024.0 * 1024 * 1024)).ToString("F1") + " GB";
+        }
+
         private void gearButton_Click(object sender, EventArgs e)
         {
             // If clicking the same pane that's already open, close it
@@ -1062,26 +1232,7 @@ namespace MeshCentralRouter
             dropdownPaneContent.Controls.Add(settingsBtn);
             yOffset += itemHeight + 4;
 
-            // Second row: Statistics button
-            Button statsBtn = new Button();
-            statsBtn.FlatStyle = FlatStyle.Flat;
-            statsBtn.FlatAppearance.BorderSize = 1;
-            statsBtn.FlatAppearance.BorderColor = borderColor;
-            statsBtn.Font = new Font("Segoe UI", 8.5F);
-            statsBtn.ForeColor = paneTextColor;
-            statsBtn.BackColor = paneBgColor;
-            statsBtn.FlatAppearance.MouseOverBackColor = paneHoverColor;
-            statsBtn.Location = new Point(4, yOffset);
-            statsBtn.Size = new Size(paneWidth - 10, itemHeight);
-            statsBtn.TextAlign = ContentAlignment.MiddleLeft;
-            statsBtn.Image = GetTintedIcon(Properties.Resources.Statistics20, paneTextColor);
-            statsBtn.ImageAlign = ContentAlignment.MiddleLeft;
-            statsBtn.Text = "     Statistics";
-            statsBtn.Click += statsButton_Click;
-            dropdownPaneContent.Controls.Add(statsBtn);
-            yOffset += itemHeight + 4;
-
-            // Third row: Status Bar toggle with label and switch
+            // Second row: Status Bar toggle with label and switch
             Panel statusBarRow = new Panel();
             statusBarRow.Location = new Point(4, yOffset);
             statusBarRow.Size = new Size(paneWidth - 10, itemHeight);
@@ -1631,6 +1782,13 @@ namespace MeshCentralRouter
             // Use a tinted Material icon so it stays readable in both themes
             gearButton.Image = GetTintedIcon(Properties.Resources.Gear20, titleBarTextColor);
             gearButton.Text = "";
+
+            // Update info button in title bar (to the right of gear button)
+            infoButton.BackColor = titleBarColor;
+            infoButton.ForeColor = titleBarTextColor;
+            infoButton.FlatAppearance.MouseOverBackColor = theme.GetButtonHoverColor();
+            infoButton.Image = GetTintedIcon(Properties.Resources.Statistics20, titleBarTextColor);
+            infoButton.Text = "";
 
             // Update theme button icon based on current theme (use Material Design icons)
             if (theme.IsDarkMode)

@@ -361,6 +361,7 @@ namespace MeshCentralRouter
             this.maximizeButton = new System.Windows.Forms.Button();
             this.minimizeButton = new System.Windows.Forms.Button();
             this.gearButton = new System.Windows.Forms.Button();
+            this.infoButton = new System.Windows.Forms.Button();
             this.themeButton = new System.Windows.Forms.Button();
             this.paneStatusBarToggleSwitch = new MeshCentralRouter.ToggleSwitch();
             this.titleLabel = new System.Windows.Forms.Label();
@@ -373,6 +374,7 @@ namespace MeshCentralRouter
             this.mainToolStripStatusLabel = new System.Windows.Forms.ToolStripStatusLabel();
             this.toolStripStatusLabel1 = new System.Windows.Forms.ToolStripStatusLabel();
             this.updateTimer = new System.Windows.Forms.Timer(this.components);
+            this.statisticsRefreshTimer = new System.Windows.Forms.Timer(this.components);
             this.topPanel = new System.Windows.Forms.Panel();
             this.chatButton = new MeshCentralRouter.RoundedButton();
             this.chatSeparator = new System.Windows.Forms.Panel();
@@ -412,6 +414,7 @@ namespace MeshCentralRouter
             this.titleBarPanel.Controls.Add(this.chatSeparator);
             this.titleBarPanel.Controls.Add(this.chatButton);
             this.titleBarPanel.Controls.Add(this.openRemoteFilesButton);
+            this.titleBarPanel.Controls.Add(this.infoButton);
             this.titleBarPanel.Controls.Add(this.gearButton);
             this.titleBarPanel.Controls.Add(this.cadButton);
             this.titleBarPanel.Controls.Add(this.connectButton);
@@ -499,6 +502,22 @@ namespace MeshCentralRouter
             this.gearButton.Text = "";
             this.gearButton.UseVisualStyleBackColor = true;
             this.gearButton.Click += new System.EventHandler(this.gearButton_Click);
+            //
+            // infoButton
+            //
+            this.infoButton.Anchor = System.Windows.Forms.AnchorStyles.Top;
+            this.infoButton.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.infoButton.FlatAppearance.BorderSize = 0;
+            this.infoButton.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.infoButton.Location = new System.Drawing.Point(416, 4);
+            this.infoButton.Name = "infoButton";
+            this.infoButton.Size = new System.Drawing.Size(32, 24);
+            this.infoButton.TabIndex = 11;
+            this.infoButton.Image = global::MeshCentralRouter.Properties.Resources.Statistics20;
+            this.infoButton.ImageAlign = System.Drawing.ContentAlignment.MiddleCenter;
+            this.infoButton.Text = "";
+            this.infoButton.UseVisualStyleBackColor = true;
+            this.infoButton.Click += new System.EventHandler(this.infoButton_Click);
             //
             // connectButton - moved to titlebar as RoundedButton
             //
@@ -625,12 +644,17 @@ namespace MeshCentralRouter
             // 
             this.toolStripStatusLabel1.Name = "toolStripStatusLabel1";
             resources.ApplyResources(this.toolStripStatusLabel1, "toolStripStatusLabel1");
-            // 
+            //
             // updateTimer
-            // 
+            //
             this.updateTimer.Enabled = true;
             this.updateTimer.Interval = 1000;
             this.updateTimer.Tick += new System.EventHandler(this.updateTimer_Tick);
+            //
+            // statisticsRefreshTimer
+            //
+            this.statisticsRefreshTimer.Interval = 500;
+            this.statisticsRefreshTimer.Tick += new System.EventHandler(this.statisticsRefreshTimer_Tick);
             //
             // topPanel
             //
@@ -855,6 +879,7 @@ namespace MeshCentralRouter
         private Label titleLabel;
         private Button themeButton;
         private Button gearButton;
+        private Button infoButton;
         private Panel dropdownPane;
         private Panel dropdownPaneContent;
         private Button settingsPaneSettingsButton;
@@ -867,6 +892,13 @@ namespace MeshCentralRouter
         private TransparentStatusStrip mainStatusStrip;
         private ToolStripStatusLabel mainToolStripStatusLabel;
         private Timer updateTimer;
+        private Timer statisticsRefreshTimer;
+        private Label statsBytesInValueLabel;
+        private Label statsBytesOutValueLabel;
+        private Label statsCompInValueLabel;
+        private Label statsCompOutValueLabel;
+        private Label statsInRatioValueLabel;
+        private Label statsOutRatioValueLabel;
         private KVMResizeControl resizeKvmControl;
         private ToolStripStatusLabel toolStripStatusLabel1;
         private Panel topPanel;

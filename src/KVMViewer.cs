@@ -105,7 +105,7 @@ namespace MeshCentralRouter
 
         // Display scaling controls
         private Label scalingLevelLabel;
-        private int currentScalingPercent = 100; // Current display zoom percentage (50-200)
+        private double currentScalingPercent = 100; // Current display zoom percentage (12.5-200)
         private List<Button> scalingPresetButtons = new List<Button>();
 
         // Auto-hide title bar when maximized
@@ -174,8 +174,8 @@ namespace MeshCentralRouter
             paneStatusBarToggleSwitch.Checked = statusBarVisible;
 
             // Load display scaling preference
-            try { currentScalingPercent = int.Parse(Settings.GetRegValue("kvmDisplayScaling", "100")); } catch (Exception) { currentScalingPercent = 100; }
-            if (currentScalingPercent < 50) currentScalingPercent = 50;
+            try { currentScalingPercent = double.Parse(Settings.GetRegValue("kvmDisplayScaling", "100")); } catch (Exception) { currentScalingPercent = 100; }
+            if (currentScalingPercent < 12.5) currentScalingPercent = 12.5;
             if (currentScalingPercent > 200) currentScalingPercent = 200;
 
             // Setup auto-hide title bar timers
@@ -1440,6 +1440,15 @@ namespace MeshCentralRouter
                 return (bytes / (1024.0 * 1024 * 1024)).ToString("F1") + " GB";
         }
 
+        private string FormatScalingPercent(double percent)
+        {
+            // Format as integer if whole number, otherwise show one decimal place
+            if (percent % 1 == 0)
+                return ((int)percent).ToString() + "%";
+            else
+                return percent.ToString("0.#") + "%";
+        }
+
         private void displayButton_Click(object sender, EventArgs e)
         {
             // If clicking the same pane that's already open, close it
@@ -1468,6 +1477,101 @@ namespace MeshCentralRouter
             int itemHeight = sectionHeaderHeight * 2; // Button height is 2x the header height
             int paneWidth = 280;
             int sidePadding = 8;
+
+            // Select Displays section - only show if we have display info
+            if (kvmControl != null && kvmControl.displays != null && kvmControl.displays.Count > 0)
+            {
+                // Select Displays section header
+                Label selectDisplaysHeader = new Label();
+                selectDisplaysHeader.Text = "Select Displays";
+                selectDisplaysHeader.Font = new Font("Segoe UI", 8.5F, FontStyle.Bold);
+                selectDisplaysHeader.ForeColor = paneTextColor;
+                selectDisplaysHeader.Location = new Point(sidePadding, yOffset);
+                selectDisplaysHeader.Size = new Size(paneWidth - (sidePadding * 2), sectionHeaderHeight);
+                dropdownPaneContent.Controls.Add(selectDisplaysHeader);
+                yOffset += sectionHeaderHeight;
+
+                // Calculate display button layout
+                int displayCount = kvmControl.displays.Count;
+                int displayButtonSize = 36; // Square buttons for display icons
+                int displayButtonSpacing = 4;
+                int buttonsPerRow = Math.Min(displayCount, 6); // Max 6 per row
+                int totalButtonsWidth = buttonsPerRow * displayButtonSize + (buttonsPerRow - 1) * displayButtonSpacing;
+                int displayStartX = sidePadding + (paneWidth - (sidePadding * 2) - totalButtonsWidth) / 2; // Center buttons
+
+                int displayX = displayStartX;
+                int displayY = yOffset;
+                int buttonsInRow = 0;
+
+                // Create display selection buttons in the dropdown pane
+                foreach (ushort displayNum in kvmControl.displays)
+                {
+                    Button displayBtn = new Button();
+                    displayBtn.FlatStyle = FlatStyle.Flat;
+                    displayBtn.FlatAppearance.BorderSize = 1;
+                    bool isSelected = (kvmControl.currentDisp == displayNum);
+                    displayBtn.FlatAppearance.BorderColor = isSelected ? selectedBorderColor : borderColor;
+                    displayBtn.BackColor = isSelected ? selectedColor : paneBgColor;
+                    displayBtn.FlatAppearance.MouseOverBackColor = paneHoverColor;
+                    displayBtn.Location = new Point(displayX, displayY);
+                    displayBtn.Size = new Size(displayButtonSize, displayButtonSize);
+                    displayBtn.Tag = displayNum;
+                    displayBtn.ImageList = displaySelectorImageList;
+
+                    if (displayNum == 0xFFFF)
+                    {
+                        // All displays button
+                        displayBtn.ImageIndex = isSelected ? 2 : 3;
+                        mainToolTip.SetToolTip(displayBtn, Translate.T(Properties.Resources.AllDisplays, lang));
+                    }
+                    else
+                    {
+                        // Individual display button
+                        displayBtn.ImageIndex = isSelected ? 0 : 1;
+                        mainToolTip.SetToolTip(displayBtn, string.Format(Translate.T(Properties.Resources.DisplayX, lang), displayNum));
+                    }
+
+                    displayBtn.Click += DisplayPaneButton_Click;
+                    dropdownPaneContent.Controls.Add(displayBtn);
+
+                    displayX += displayButtonSize + displayButtonSpacing;
+                    buttonsInRow++;
+
+                    if (buttonsInRow >= buttonsPerRow && buttonsInRow < displayCount)
+                    {
+                        // Move to next row
+                        displayX = displayStartX;
+                        displayY += displayButtonSize + displayButtonSpacing;
+                        buttonsInRow = 0;
+                    }
+                }
+
+                // Calculate the total height used by display buttons
+                int totalRows = (displayCount + buttonsPerRow - 1) / buttonsPerRow;
+                yOffset += totalRows * displayButtonSize + (totalRows - 1) * displayButtonSpacing + 4;
+
+                // Add Split/Join button if applicable (multiple displays and "All Displays" is selected)
+                if (kvmControl.currentDisp == 65535 && kvmControl.displays.Count > 1)
+                {
+                    yOffset += 4;
+                    Button splitJoinBtn = new Button();
+                    splitJoinBtn.FlatStyle = FlatStyle.Flat;
+                    splitJoinBtn.FlatAppearance.BorderSize = 1;
+                    splitJoinBtn.FlatAppearance.BorderColor = borderColor;
+                    splitJoinBtn.Font = new Font("Segoe UI", 8.5F);
+                    splitJoinBtn.ForeColor = paneTextColor;
+                    splitJoinBtn.BackColor = paneBgColor;
+                    splitJoinBtn.FlatAppearance.MouseOverBackColor = paneHoverColor;
+                    splitJoinBtn.Location = new Point(sidePadding, yOffset);
+                    splitJoinBtn.Size = new Size(paneWidth - (sidePadding * 2), itemHeight);
+                    splitJoinBtn.Text = splitMode ? Translate.T(Properties.Resources.Join, lang) : Translate.T(Properties.Resources.Split, lang);
+                    splitJoinBtn.Click += DisplayPaneSplitButton_Click;
+                    dropdownPaneContent.Controls.Add(splitJoinBtn);
+                    yOffset += itemHeight;
+                }
+
+                yOffset += 8; // Add spacing after section
+            }
 
             // Frame Rate section header
             Label frameRateHeader = new Label();
@@ -1541,7 +1645,7 @@ namespace MeshCentralRouter
             scalingLevelLabel.Location = new Point(sidePadding + zoomButtonWidth + 2, yOffset);
             scalingLevelLabel.Size = new Size(zoomButtonWidth, halfHeight);
             scalingLevelLabel.TextAlign = ContentAlignment.MiddleCenter;
-            scalingLevelLabel.Text = currentScalingPercent + "%";
+            scalingLevelLabel.Text = FormatScalingPercent(currentScalingPercent);
             dropdownPaneContent.Controls.Add(scalingLevelLabel);
 
             // Zoom in button
@@ -1565,21 +1669,22 @@ namespace MeshCentralRouter
             int presetButtonWidth = (scalingRowWidth - 8) / 5; // 5 columns with small gaps
 
             scalingPresetButtons.Clear();
-            int[] presetValues = { 50, 75, 100, 150, 200 };
+            double[] presetValues = { 50, 75, 100, 150, 200 };
             for (int i = 0; i < presetValues.Length; i++)
             {
-                int presetValue = presetValues[i];
+                double presetValue = presetValues[i];
+                bool isSelected = Math.Abs(currentScalingPercent - presetValue) < 0.01;
                 Button presetBtn = new Button();
                 presetBtn.FlatStyle = FlatStyle.Flat;
                 presetBtn.FlatAppearance.BorderSize = 1;
-                presetBtn.FlatAppearance.BorderColor = (currentScalingPercent == presetValue) ? selectedBorderColor : borderColor;
+                presetBtn.FlatAppearance.BorderColor = isSelected ? selectedBorderColor : borderColor;
                 presetBtn.Font = new Font("Segoe UI", 8F);
                 presetBtn.ForeColor = paneTextColor;
-                presetBtn.BackColor = (currentScalingPercent == presetValue) ? selectedColor : paneBgColor;
+                presetBtn.BackColor = isSelected ? selectedColor : paneBgColor;
                 presetBtn.FlatAppearance.MouseOverBackColor = paneHoverColor;
                 presetBtn.Location = new Point(sidePadding + i * (presetButtonWidth + 2), yOffset);
                 presetBtn.Size = new Size(presetButtonWidth, halfHeight);
-                presetBtn.Text = presetValue + "%";
+                presetBtn.Text = FormatScalingPercent(presetValue);
                 presetBtn.Tag = presetValue;
                 presetBtn.Click += ScalingPreset_Click;
                 dropdownPaneContent.Controls.Add(presetBtn);
@@ -1619,14 +1724,40 @@ namespace MeshCentralRouter
             Settings.SetRegValue("kvmFrameRate", frameRateValue.ToString());
         }
 
+        private void DisplayPaneButton_Click(object sender, EventArgs e)
+        {
+            Button btn = sender as Button;
+            if (btn == null || kvmControl == null) return;
+
+            ushort displayNum = (ushort)btn.Tag;
+
+            // If in split mode, exit it first
+            if (splitMode) { splitButton_Click(this, null); }
+
+            // Send the display switch command
+            kvmControl.SendDisplay(displayNum);
+
+            // Refresh the display pane to show updated selection
+            displayButton_Click(sender, e);
+        }
+
+        private void DisplayPaneSplitButton_Click(object sender, EventArgs e)
+        {
+            // Toggle split mode
+            splitButton_Click(this, null);
+
+            // Refresh the display pane to show updated button text
+            displayButton_Click(sender, e);
+        }
+
         private void ScalingZoomOut_Click(object sender, EventArgs e)
         {
-            // Decrease by 12.5% (minimum 50%), round to nearest 12.5%
+            // Decrease by 12.5% (minimum 12.5%), round to nearest 12.5%
             double newValue = currentScalingPercent - 12.5;
-            if (newValue < 50) newValue = 50;
+            if (newValue < 12.5) newValue = 12.5;
             // Round to nearest 12.5% step
-            int rounded = (int)(Math.Round(newValue / 12.5) * 12.5);
-            if (rounded < 50) rounded = 50;
+            double rounded = Math.Round(newValue / 12.5) * 12.5;
+            if (rounded < 12.5) rounded = 12.5;
             ApplyDisplayScaling(rounded);
         }
 
@@ -1636,7 +1767,7 @@ namespace MeshCentralRouter
             double newValue = currentScalingPercent + 12.5;
             if (newValue > 200) newValue = 200;
             // Round to nearest 12.5% step
-            int rounded = (int)(Math.Round(newValue / 12.5) * 12.5);
+            double rounded = Math.Round(newValue / 12.5) * 12.5;
             if (rounded > 200) rounded = 200;
             ApplyDisplayScaling(rounded);
         }
@@ -1646,12 +1777,12 @@ namespace MeshCentralRouter
             Button btn = sender as Button;
             if (btn != null && btn.Tag != null)
             {
-                int presetValue = (int)btn.Tag;
+                double presetValue = Convert.ToDouble(btn.Tag);
                 ApplyDisplayScaling(presetValue);
             }
         }
 
-        private void ApplyDisplayScaling(int percent)
+        private void ApplyDisplayScaling(double percent)
         {
             currentScalingPercent = percent;
 
@@ -1709,7 +1840,7 @@ namespace MeshCentralRouter
             // Update the label if it exists
             if (scalingLevelLabel != null)
             {
-                scalingLevelLabel.Text = currentScalingPercent + "%";
+                scalingLevelLabel.Text = FormatScalingPercent(currentScalingPercent);
             }
 
             // Update preset button states in place (no panel refresh needed)
@@ -1725,8 +1856,8 @@ namespace MeshCentralRouter
                 {
                     if (btn.Tag != null)
                     {
-                        int presetValue = (int)btn.Tag;
-                        bool isSelected = (currentScalingPercent == presetValue);
+                        double presetValue = Convert.ToDouble(btn.Tag);
+                        bool isSelected = (Math.Abs(currentScalingPercent - presetValue) < 0.01);
                         btn.BackColor = isSelected ? selectedColor : paneBgColor;
                         btn.FlatAppearance.BorderColor = isSelected ? selectedBorderColor : borderColor;
                     }

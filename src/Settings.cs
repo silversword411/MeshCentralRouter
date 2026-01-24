@@ -112,5 +112,88 @@ namespace MeshCentralRouter
             key.DeleteSubKeyTree("Applications");
             key.Close();
         }
+
+        /// <summary>
+        /// Generate a safe registry key name from a server URL
+        /// </summary>
+        private static string GetServerKeyName(string serverUrl)
+        {
+            if (string.IsNullOrEmpty(serverUrl)) return "default";
+            // Use a hash to create a safe key name
+            using (var sha = System.Security.Cryptography.SHA256.Create())
+            {
+                byte[] hash = sha.ComputeHash(System.Text.Encoding.UTF8.GetBytes(serverUrl));
+                return BitConverter.ToString(hash).Replace("-", "").Substring(0, 16);
+            }
+        }
+
+        /// <summary>
+        /// Save the collapsed state of groups for a specific server
+        /// </summary>
+        public static void SetCollapsedGroups(string serverUrl, List<string> collapsedMeshIds)
+        {
+            System.Diagnostics.Debug.WriteLine("SetCollapsedGroups called with " + collapsedMeshIds.Count + " collapsed groups for server: " + serverUrl);
+            try
+            {
+                string serverKey = GetServerKeyName(serverUrl);
+                string keyPath = @"SOFTWARE\Open Source\MeshCentral Router\Servers\" + serverKey;
+                System.Diagnostics.Debug.WriteLine("SetCollapsedGroups using registry path: " + keyPath);
+                
+                using (RegistryKey key = Registry.CurrentUser.CreateSubKey(keyPath, true))
+                {
+                    if (key != null)
+                    {
+                        // Store the actual server URL for reference
+                        key.SetValue("ServerUrl", serverUrl);
+                        // Store collapsed groups as a comma-separated string
+                        string collapsedStr = string.Join(",", collapsedMeshIds.ToArray());
+                        System.Diagnostics.Debug.WriteLine("SetCollapsedGroups writing CollapsedGroups = '" + collapsedStr + "'");
+                        key.SetValue("CollapsedGroups", collapsedStr);
+                        // Mark that state has been saved (to distinguish from no saved state)
+                        key.SetValue("StateSaved", "true");
+                        System.Diagnostics.Debug.WriteLine("SetCollapsedGroups DONE - wrote to registry");
+                    }
+                }
+            }
+            catch (Exception ex) 
+            { 
+                System.Diagnostics.Debug.WriteLine("SetCollapsedGroups ERROR: " + ex.Message);
+            }
+        }
+
+        /// <summary>
+        /// Load the collapsed state of groups for a specific server
+        /// Returns null if no state has been saved, or a list (possibly empty) if state exists
+        /// </summary>
+        public static List<string> GetCollapsedGroups(string serverUrl)
+        {
+            try
+            {
+                string serverKey = GetServerKeyName(serverUrl);
+                string keyPath = @"SOFTWARE\Open Source\MeshCentral Router\Servers\" + serverKey;
+                using (RegistryKey key = Registry.CurrentUser.OpenSubKey(keyPath, false))
+                {
+                    if (key != null)
+                    {
+                        // Check if state has been saved for this server
+                        string stateSaved = key.GetValue("StateSaved", "").ToString();
+                        if (stateSaved == "true")
+                        {
+                            // State exists - return the list (may be empty if all groups are expanded)
+                            List<string> result = new List<string>();
+                            string collapsedStr = key.GetValue("CollapsedGroups", "").ToString();
+                            if (!string.IsNullOrEmpty(collapsedStr))
+                            {
+                                string[] meshIds = collapsedStr.Split(new char[] { ',' }, StringSplitOptions.RemoveEmptyEntries);
+                                result.AddRange(meshIds);
+                            }
+                            return result;
+                        }
+                    }
+                }
+            }
+            catch (Exception) { }
+            return null; // No saved state
+        }
     }
 }

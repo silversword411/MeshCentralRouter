@@ -71,6 +71,10 @@ namespace MeshCentralRouter
         private Point dragStartPoint;
         // Cache for tinted icons: keyed by (source image hash, tint color ARGB)
         private Dictionary<string, Bitmap> _tintedIconCache = new Dictionary<string, Bitmap>();
+        // Track collapsed groups per server
+        private HashSet<string> collapsedGroupMeshIds = new HashSet<string>();
+        private string currentServerUrl = null;
+        private bool hasLoadedServerState = false; // Track if we've loaded state for current server
 
         public delegate void ClipboardChangedHandler();
         public event ClipboardChangedHandler ClipboardChanged;
@@ -270,6 +274,10 @@ namespace MeshCentralRouter
 
             this.args = args;
             InitializeComponent();
+            
+            // Hook up group state change event
+            devicesListView.GroupStateChanged += DevicesListView_GroupStateChanged;
+            
             Translate.TranslateControl(this);
             Translate.TranslateListView(devicesListView);
             Translate.TranslateContextMenu(trayIconContextMenuStrip);
@@ -960,17 +968,9 @@ namespace MeshCentralRouter
                         this.devicesListView.Groups.AddRange(groups);
                         this.devicesListView.EndUpdate();
 
-                        foreach (ListViewGroup lvg in devicesListView.Groups)
-                        {
-                            if (collapseDeviceGroup)
-                            {
-                                ListViewExtended.setGrpState(lvg, ListViewGroupState.Collapsible | ListViewGroupState.Collapsed);
-                            }
-                            else
-                            {
-                                ListViewExtended.setGrpState(lvg, ListViewGroupState.Collapsible | ListViewGroupState.Normal);
-                            }
-                        }
+                        // Load saved group states for this server and apply them
+                        LoadGroupStates();
+                        ApplyGroupStates();
                     }
 
                     // Add all controls at once to make it fast.
@@ -1229,6 +1229,10 @@ namespace MeshCentralRouter
                 stateLabel.Visible = false;
                 setPanel(4);
                 addButton.Focus();
+                
+                // Load saved group states for this server
+                LoadGroupStates();
+                
                 if (authLoginUrl == null)
                 {
                     Settings.SetRegValue("ServerName", serverNameComboBox.Text);
@@ -2940,6 +2944,145 @@ namespace MeshCentralRouter
 
             _tintedIconCache[cacheKey] = tinted;
             return tinted;
+        }
+
+        /// <summary>
+        /// Event handler for when device group states change (collapsed/expanded)
+        /// </summary>
+        private void DevicesListView_GroupStateChanged(object sender, GroupStateChangedEventArgs e)
+        {
+            System.Diagnostics.Debug.WriteLine("============ DevicesListView_GroupStateChanged EVENT FIRED ============");
+            // Save the current collapsed state of all groups
+            SaveGroupStates();
+        }
+
+        /// <summary>
+        /// Save the collapsed state of all device groups for the current server
+        /// </summary>
+        private void SaveGroupStates()
+        {
+            if (meshcentral == null || meshcentral.wsurl == null) return;
+
+            try
+            {
+                collapsedGroupMeshIds.Clear();
+
+                foreach (ListViewGroup group in devicesListView.Groups)
+                {
+                    string meshId = group.Tag as string;
+                    if (!string.IsNullOrEmpty(meshId))
+                    {
+                        ListViewGroupState state = ListViewExtended.GetGroupStateStatic(group);
+                        if (debug) System.Diagnostics.Debug.WriteLine("Group: " + group.Header + " State: " + state.ToString());
+                        
+                        // Check if the group is collapsed
+                        if ((state & ListViewGroupState.Collapsed) == ListViewGroupState.Collapsed)
+                        {
+                            collapsedGroupMeshIds.Add(meshId);
+                            if (debug) System.Diagnostics.Debug.WriteLine("  -> COLLAPSED, adding to list");
+                        }
+                        else
+                        {
+                            if (debug) System.Diagnostics.Debug.WriteLine("  -> EXPANDED, not adding");
+                        }
+                    }
+                }
+
+                if (debug) System.Diagnostics.Debug.WriteLine("SaveGroupStates: Saving " + collapsedGroupMeshIds.Count + " collapsed groups to: " + meshcentral.wsurl.ToString());
+
+                // Save to registry
+                Settings.SetCollapsedGroups(meshcentral.wsurl.ToString(), new List<string>(collapsedGroupMeshIds));
+            }
+            catch (Exception ex)
+            {
+                if (debug) System.Diagnostics.Debug.WriteLine("Error saving group states: " + ex.Message);
+            }
+        }
+
+        /// <summary>
+        /// Load the collapsed state of device groups for the current server
+        /// </summary>
+        private void LoadGroupStates()
+        {
+            if (meshcentral == null || meshcentral.wsurl == null) return;
+
+            try
+            {
+                string serverUrl = meshcentral.wsurl.ToString();
+                if (serverUrl != currentServerUrl)
+                {
+                    // Server changed, load the collapsed groups for this server
+                    currentServerUrl = serverUrl;
+                    collapsedGroupMeshIds.Clear();
+                    List<string> collapsed = Settings.GetCollapsedGroups(serverUrl);
+                    
+                    if (collapsed != null)
+                    {
+                        // Saved state exists - use it (even if empty, meaning all groups are expanded)
+                        hasLoadedServerState = true;
+                        foreach (string meshId in collapsed)
+                        {
+                            collapsedGroupMeshIds.Add(meshId);
+                        }
+                    }
+                    else
+                    {
+                        // No saved state exists for this server
+                        hasLoadedServerState = false;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                if (debug) System.Diagnostics.Debug.WriteLine("Error loading group states: " + ex.Message);
+            }
+        }
+
+        /// <summary>
+        /// Apply saved group states to the device list view
+        /// </summary>
+        private void ApplyGroupStates()
+        {
+            if (devicesListView.Groups.Count == 0) return;
+
+            try
+            {
+                // Use saved state if it exists, otherwise use global default
+                bool useSavedState = hasLoadedServerState;
+                
+                foreach (ListViewGroup group in devicesListView.Groups)
+                {
+                    string meshId = group.Tag as string;
+                    if (!string.IsNullOrEmpty(meshId))
+                    {
+                        bool shouldBeCollapsed;
+                        
+                        if (useSavedState)
+                        {
+                            // Use saved per-group state
+                            shouldBeCollapsed = collapsedGroupMeshIds.Contains(meshId);
+                        }
+                        else
+                        {
+                            // No saved state - use global default
+                            shouldBeCollapsed = collapseDeviceGroup;
+                        }
+                        
+                        if (shouldBeCollapsed)
+                        {
+                            ListViewExtended.setGrpState(group, ListViewGroupState.Collapsible | ListViewGroupState.Collapsed);
+                        }
+                        else
+                        {
+                            ListViewExtended.setGrpState(group, ListViewGroupState.Collapsible | ListViewGroupState.Normal);
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                if (debug) System.Diagnostics.Debug.WriteLine("Error applying group states: " + ex.Message);
+            }
         }
 
         /*

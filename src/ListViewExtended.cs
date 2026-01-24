@@ -12,7 +12,11 @@ namespace MeshCentralRouter
     {
         private const int LVM_FIRST = 0x1000;                    // ListView messages
         private const int LVM_SETGROUPINFO = (LVM_FIRST + 147);  // ListView messages Setinfo on Group
-        private const int WM_LBUTTONUP = 0x0202;                 // Windows message left button
+        private const int LVM_GETGROUPINFO = (LVM_FIRST + 149);  // ListView messages Get info on Group
+        private const int WM_LBUTTONUP = 0x0202;                 // Windows message left button up
+
+        // Event for group state changes
+        public event EventHandler<GroupStateChangedEventArgs> GroupStateChanged;
 
         private delegate void CallBackSetGroupState(ListViewGroup lstvwgrp, ListViewGroupState state);
         private delegate void CallbackSetGroupString(ListViewGroup lstvwgrp, string value);
@@ -38,6 +42,9 @@ namespace MeshCentralRouter
         /// </returns>
         [DllImport("User32.dll"), Description("Sends the specified message to a window or windows. The SendMessage function calls the window procedure for the specified window and does not return until the window procedure has processed the message. To send a message and return immediately, use the SendMessageCallback or SendNotifyMessage function. To post a message to a thread's message queue and return immediately, use the PostMessage or PostThreadMessage function.")]
         private static extern int SendMessage(IntPtr hWnd, int Msg, int wParam, LVGROUP lParam);
+
+        [DllImport("User32.dll"), Description("Sends the specified message to a window or windows - ref LVGROUP version for getting group info")]
+        private static extern int SendMessage(IntPtr hWnd, int Msg, int wParam, ref LVGROUP lParam);
 
         private static int? GetGroupID(ListViewGroup lstvwgrp)
         {
@@ -130,12 +137,99 @@ namespace MeshCentralRouter
                 setGrpFooter(lvg, footerText);
         }
 
+        /// <summary>
+        /// Get the current state of a ListView group by querying the native control
+        /// </summary>
+        public ListViewGroupState GetGroupState(ListViewGroup lstvwgrp)
+        {
+            if (lstvwgrp == null || lstvwgrp.ListView == null) return ListViewGroupState.Normal;
+
+            try
+            {
+                int? grpId = GetGroupID(lstvwgrp);
+                if (grpId == null) return ListViewGroupState.Normal;
+
+                LVGROUP group = new LVGROUP();
+                group.CbSize = Marshal.SizeOf(group);
+                group.Mask = ListViewGroupMask.State;
+                group.StateMask = (int)(ListViewGroupState.Collapsed | ListViewGroupState.Collapsible);
+
+                int result = SendMessage(lstvwgrp.ListView.Handle, LVM_GETGROUPINFO, grpId.Value, ref group);
+                if (result >= 0)
+                {
+                    System.Diagnostics.Debug.WriteLine("GetGroupState for group '" + lstvwgrp.Header + "' native state: " + group.State);
+                    return group.State;
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine("GetGroupState error: " + ex.Message);
+            }
+
+            return ListViewGroupState.Normal;
+        }
+        
+        /// <summary>
+        /// Static version for external calls - reads from tracked state
+        /// </summary>
+        public static ListViewGroupState GetGroupStateStatic(ListViewGroup lstvwgrp)
+        {
+            if (lstvwgrp == null || lstvwgrp.ListView == null) return ListViewGroupState.Normal;
+            
+            // If it's a ListViewExtended, use the tracked state
+            if (lstvwgrp.ListView is ListViewExtended)
+            {
+                return ((ListViewExtended)lstvwgrp.ListView).GetGroupState(lstvwgrp);
+            }
+            
+            return ListViewGroupState.Normal;
+        }
+
+        /// <summary>
+        /// Fire event after a click that may have changed group state
+        /// Since we now query native state directly, we just fire the event after clicks
+        /// </summary>
+        private void CheckForGroupStateChange()
+        {
+            // Fire the event - the handler will query native states directly
+            System.Diagnostics.Debug.WriteLine("CheckForGroupStateChange: Firing GroupStateChanged event");
+            OnGroupStateChangedInternal();
+        }
+
         protected override void WndProc(ref Message m)
         {
             if (m.Msg == WM_LBUTTONUP)
+            {
                 base.DefWndProc(ref m);
+                // Fire event after a delay to allow Windows to update the native group state
+                System.Threading.Timer timer = null;
+                timer = new System.Threading.Timer((state) =>
+                {
+                    if (this.InvokeRequired)
+                    {
+                        try { this.Invoke(new Action(() => CheckForGroupStateChange())); }
+                        catch { }
+                    }
+                    else
+                    {
+                        CheckForGroupStateChange();
+                    }
+                    timer?.Dispose();
+                }, null, 100, System.Threading.Timeout.Infinite);
+            }
+
             base.WndProc(ref m);
         }
+
+        private void OnGroupStateChangedInternal()
+        {
+            GroupStateChanged?.Invoke(this, new GroupStateChangedEventArgs());
+        }
+    }
+
+    // Event args for group state changes
+    public class GroupStateChangedEventArgs : EventArgs
+    {
     }
 
 

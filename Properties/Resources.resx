@@ -136,6 +136,9 @@
   <data name="MoonDark20" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>..\Resources\MoonDark20.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
+  <data name="Display20" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\Resources\Display20.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
   <data name="iconClipboardIn" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>..\Resources\icon-clipboard-in.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
@@ -150,6 +153,9 @@
   </data>
   <data name="DisplayConnectionStatistics" xml:space="preserve">
     <value>Display connection statistics</value>
+  </data>
+  <data name="DisplaySettings" xml:space="preserve">
+    <value>Display Settings</value>
   </data>
   <data name="OpenSSHAppName" xml:space="preserve">
     <value>OpenSSH</value>
@@ -192,6 +198,9 @@
   </data>
   <data name="Fast" xml:space="preserve">
     <value>Fast</value>
+  </data>
+  <data name="FrameRate" xml:space="preserve">
+    <value>Frame Rate</value>
   </data>
   <data name="RecordedSession" xml:space="preserve">
     <value>, Recorded Session</value>

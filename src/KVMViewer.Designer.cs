@@ -361,6 +361,7 @@ namespace MeshCentralRouter
             this.maximizeButton = new System.Windows.Forms.Button();
             this.minimizeButton = new System.Windows.Forms.Button();
             this.gearButton = new System.Windows.Forms.Button();
+            this.displayButton = new System.Windows.Forms.Button();
             this.infoButton = new System.Windows.Forms.Button();
             this.themeButton = new System.Windows.Forms.Button();
             this.paneStatusBarToggleSwitch = new MeshCentralRouter.ToggleSwitch();
@@ -416,6 +417,7 @@ namespace MeshCentralRouter
             this.titleBarPanel.Controls.Add(this.openRemoteFilesButton);
             this.titleBarPanel.Controls.Add(this.infoButton);
             this.titleBarPanel.Controls.Add(this.gearButton);
+            this.titleBarPanel.Controls.Add(this.displayButton);
             this.titleBarPanel.Controls.Add(this.cadButton);
             this.titleBarPanel.Controls.Add(this.connectButton);
             this.titleBarPanel.Controls.Add(this.titleLabel);
@@ -502,6 +504,22 @@ namespace MeshCentralRouter
             this.gearButton.Text = "";
             this.gearButton.UseVisualStyleBackColor = true;
             this.gearButton.Click += new System.EventHandler(this.gearButton_Click);
+            //
+            // displayButton
+            //
+            this.displayButton.Anchor = System.Windows.Forms.AnchorStyles.Top;
+            this.displayButton.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.displayButton.FlatAppearance.BorderSize = 0;
+            this.displayButton.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.displayButton.Location = new System.Drawing.Point(352, 4);
+            this.displayButton.Name = "displayButton";
+            this.displayButton.Size = new System.Drawing.Size(32, 24);
+            this.displayButton.TabIndex = 12;
+            this.displayButton.Image = global::MeshCentralRouter.Properties.Resources.Display20;
+            this.displayButton.ImageAlign = System.Drawing.ContentAlignment.MiddleCenter;
+            this.displayButton.Text = "";
+            this.displayButton.UseVisualStyleBackColor = true;
+            this.displayButton.Click += new System.EventHandler(this.displayButton_Click);
             //
             // infoButton
             //
@@ -879,6 +897,7 @@ namespace MeshCentralRouter
         private Label titleLabel;
         private Button themeButton;
         private Button gearButton;
+        private Button displayButton;
         private Button infoButton;
         private Panel dropdownPane;
         private Panel dropdownPaneContent;

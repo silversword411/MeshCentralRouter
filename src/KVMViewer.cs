@@ -100,6 +100,9 @@ namespace MeshCentralRouter
         public long bytesOut = 0;
         public long bytesOutCompressed = 0;
 
+        // Frame rate panel toggle button group
+        private ToggleButtonGroup frameRateButtonGroup;
+
         public KVMViewer(MainForm parent, MeshCentralServer server, NodeClass node)
         {
             this.parent = parent;
@@ -128,6 +131,7 @@ namespace MeshCentralRouter
             mainToolTip.SetToolTip(zoomButton, Translate.T(Properties.Resources.ToggleZoomToFitMode, lang));
             mainToolTip.SetToolTip(statsButton, Translate.T(Properties.Resources.DisplayConnectionStatistics, lang));
             mainToolTip.SetToolTip(infoButton, Translate.T(Properties.Resources.DisplayConnectionStatistics, lang));
+            mainToolTip.SetToolTip(displayButton, Translate.T(Properties.Resources.DisplaySettings, lang));
 
             // Load remote desktop settings
             int CompressionLevel = 60;
@@ -562,12 +566,13 @@ namespace MeshCentralRouter
 
         private void CenterTitleBarControls()
         {
-            // Center the gear and info buttons in the title bar (with small spacing between them)
+            // Center the display, gear and info buttons in the title bar (with small spacing between them)
             int spacing = 4;
-            int totalWidth = gearButton.Width + spacing + infoButton.Width;
+            int totalWidth = displayButton.Width + spacing + gearButton.Width + spacing + infoButton.Width;
             int startX = (titleBarPanel.Width - totalWidth) / 2;
-            gearButton.Location = new Point(startX, gearButton.Location.Y);
-            infoButton.Location = new Point(startX + gearButton.Width + spacing, infoButton.Location.Y);
+            displayButton.Location = new Point(startX, displayButton.Location.Y);
+            gearButton.Location = new Point(startX + displayButton.Width + spacing, gearButton.Location.Y);
+            infoButton.Location = new Point(startX + displayButton.Width + spacing + gearButton.Width + spacing, infoButton.Location.Y);
 
             // Also center the dropdown pane if it's visible
             if (dropdownPane.Visible)
@@ -1188,6 +1193,100 @@ namespace MeshCentralRouter
                 return (bytes / (1024.0 * 1024 * 1024)).ToString("F1") + " GB";
         }
 
+        private void displayButton_Click(object sender, EventArgs e)
+        {
+            // If clicking the same pane that's already open, close it
+            if (dropdownPane.Visible && dropdownPaneLabel.Text == "Display")
+            {
+                HideDropdownPane();
+                return;
+            }
+
+            // Set the title
+            dropdownPaneLabel.Text = "Display";
+
+            // Clear existing content
+            dropdownPaneContent.Controls.Clear();
+
+            ThemeManager theme = ThemeManager.Instance;
+            Color paneBgColor = theme.IsDarkMode ? Color.FromArgb(45, 45, 45) : Color.FromArgb(250, 250, 250);
+            Color paneTextColor = theme.IsDarkMode ? Color.White : Color.Black;
+            Color paneHoverColor = theme.IsDarkMode ? Color.FromArgb(60, 60, 60) : Color.FromArgb(230, 230, 230);
+            Color selectedColor = theme.IsDarkMode ? Color.FromArgb(70, 130, 180) : Color.FromArgb(200, 220, 240);
+            Color borderColor = theme.IsDarkMode ? Color.FromArgb(80, 80, 80) : Color.FromArgb(200, 200, 200);
+            Color selectedBorderColor = theme.IsDarkMode ? Color.FromArgb(100, 149, 237) : Color.FromArgb(70, 130, 180);
+
+            int yOffset = 4;
+            int sectionHeaderHeight = 22;
+            int itemHeight = sectionHeaderHeight * 2; // Button height is 2x the header height
+            int paneWidth = 280;
+            int sidePadding = 8;
+
+            // Frame Rate section header
+            Label frameRateHeader = new Label();
+            frameRateHeader.Text = Translate.T(Properties.Resources.FrameRate, lang);
+            frameRateHeader.Font = new Font("Segoe UI", 8.5F, FontStyle.Bold);
+            frameRateHeader.ForeColor = paneTextColor;
+            frameRateHeader.Location = new Point(sidePadding, yOffset);
+            frameRateHeader.Size = new Size(paneWidth - (sidePadding * 2), sectionHeaderHeight);
+            dropdownPaneContent.Controls.Add(frameRateHeader);
+            yOffset += sectionHeaderHeight;
+
+            // Create ToggleButtonGroup for frame rate options
+            frameRateButtonGroup = new ToggleButtonGroup();
+            frameRateButtonGroup.Location = new Point(0, yOffset);
+            frameRateButtonGroup.Size = new Size(paneWidth, itemHeight);
+            frameRateButtonGroup.ButtonSpacing = 4;
+            frameRateButtonGroup.SidePadding = sidePadding;
+            frameRateButtonGroup.SelectedValue = kvmControl.FrameRate;
+
+            // Add frame rate options: Fast (50ms), Medium (100ms), Slow (400ms), Very Slow (1000ms)
+            frameRateButtonGroup.AddButton(Translate.T(Properties.Resources.Fast, lang), 50);
+            frameRateButtonGroup.AddButton(Translate.T(Properties.Resources.Medium, lang), 100);
+            frameRateButtonGroup.AddButton(Translate.T(Properties.Resources.Slow, lang), 400);
+            frameRateButtonGroup.AddButton(Translate.T(Properties.Resources.VerySlow, lang), 1000);
+
+            // Apply theme colors
+            frameRateButtonGroup.UpdateTheme(paneBgColor, paneTextColor, selectedColor,
+                borderColor, selectedBorderColor, paneHoverColor);
+
+            // Handle value changes
+            frameRateButtonGroup.SelectedValueChanged += FrameRateButtonGroup_SelectedValueChanged;
+
+            dropdownPaneContent.Controls.Add(frameRateButtonGroup);
+            yOffset += itemHeight + 4;
+
+            // Calculate pane size
+            int contentHeight = yOffset;
+            dropdownPane.Size = new Size(paneWidth, 28 + contentHeight);
+            dropdownPaneContent.Size = new Size(paneWidth - 2, contentHeight);
+
+            // Position the dropdown centered under the display button
+            int centerX = (this.Width - dropdownPane.Width) / 2;
+            int paneY = titleBarPanel.Bottom;
+            dropdownPane.Location = new Point(centerX, paneY);
+
+            // Show and bring to front
+            dropdownPane.Visible = true;
+            dropdownPane.BringToFront();
+
+            // Apply theme to the container
+            dropdownPane.BackColor = paneBgColor;
+            dropdownPaneLabel.ForeColor = paneTextColor;
+            dropdownPaneContent.BackColor = paneBgColor;
+        }
+
+        private void FrameRateButtonGroup_SelectedValueChanged(object sender, ToggleButtonValueChangedEventArgs e)
+        {
+            int frameRateValue = (int)e.Value;
+
+            // Apply the new frame rate
+            kvmControl.SetCompressionParams(kvmControl.CompressionLevel, kvmControl.ScalingLevel, frameRateValue);
+
+            // Save to registry
+            Settings.SetRegValue("kvmFrameRate", frameRateValue.ToString());
+        }
+
         private void gearButton_Click(object sender, EventArgs e)
         {
             // If clicking the same pane that's already open, close it
@@ -1783,6 +1882,13 @@ namespace MeshCentralRouter
             gearButton.Image = GetTintedIcon(Properties.Resources.Gear20, titleBarTextColor);
             gearButton.Text = "";
 
+            // Update display button in title bar (to the left of gear button)
+            displayButton.BackColor = titleBarColor;
+            displayButton.ForeColor = titleBarTextColor;
+            displayButton.FlatAppearance.MouseOverBackColor = theme.GetButtonHoverColor();
+            displayButton.Image = GetTintedIcon(Properties.Resources.Display20, titleBarTextColor);
+            displayButton.Text = "";
+
             // Update info button in title bar (to the right of gear button)
             infoButton.BackColor = titleBarColor;
             infoButton.ForeColor = titleBarTextColor;
@@ -1800,6 +1906,11 @@ namespace MeshCentralRouter
                 themeButton.Image = GetTintedIcon(Properties.Resources.MoonDark20, titleBarTextColor);
             }
             themeButton.Text = "";
+
+            // Update zoom button icon with theme-aware tinting
+            zoomButton.BackColor = titleBarColor;
+            zoomButton.FlatAppearance.MouseOverBackColor = theme.GetButtonHoverColor();
+            zoomButton.Image = GetTintedIcon(Properties.Resources.ZoomToFit, titleBarTextColor);
         }
 
         private void UpdateDropdownPaneTheme()

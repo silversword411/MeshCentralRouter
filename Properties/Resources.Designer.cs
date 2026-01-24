@@ -207,7 +207,17 @@ namespace MeshCentralRouter.Properties {
                 return ((System.Drawing.Bitmap)(obj));
             }
         }
-        
+
+        /// <summary>
+        ///   Looks up a localized resource of type System.Drawing.Bitmap.
+        /// </summary>
+        internal static System.Drawing.Bitmap Display20 {
+            get {
+                object obj = ResourceManager.GetObject("Display20", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+
         /// <summary>
         ///   Looks up a localized string similar to Denied.
         /// </summary>
@@ -243,7 +253,16 @@ namespace MeshCentralRouter.Properties {
                 return ResourceManager.GetString("DisplayConnectionStatistics", resourceCulture);
             }
         }
-        
+
+        /// <summary>
+        ///   Looks up a localized string similar to Display Settings.
+        /// </summary>
+        internal static string DisplaySettings {
+            get {
+                return ResourceManager.GetString("DisplaySettings", resourceCulture);
+            }
+        }
+
         /// <summary>
         ///   Looks up a localized string similar to Display {0}.
         /// </summary>
@@ -343,7 +362,16 @@ namespace MeshCentralRouter.Properties {
                 return ResourceManager.GetString("Fast", resourceCulture);
             }
         }
-        
+
+        /// <summary>
+        ///   Looks up a localized string similar to Frame Rate.
+        /// </summary>
+        internal static string FrameRate {
+            get {
+                return ResourceManager.GetString("FrameRate", resourceCulture);
+            }
+        }
+
         /// <summary>
         ///   Looks up a localized resource of type System.Drawing.Bitmap.
         /// </summary>

@@ -192,6 +192,9 @@
     <Compile Include="src\ToggleSwitch.cs">
       <SubType>Component</SubType>
     </Compile>
+    <Compile Include="src\ToggleButtonGroup.cs">
+      <SubType>Component</SubType>
+    </Compile>
     <Compile Include="src\InstallForm.cs">
       <SubType>Form</SubType>
     </Compile>

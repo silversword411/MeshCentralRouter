@@ -75,6 +75,8 @@ namespace MeshCentralRouter
         private HashSet<string> collapsedGroupMeshIds = new HashSet<string>();
         private string currentServerUrl = null;
         private bool hasLoadedServerState = false; // Track if we've loaded state for current server
+        // Delete saved server button
+        private Button deleteServerButton = null;
 
         public delegate void ClipboardChangedHandler();
         public event ClipboardChangedHandler ClipboardChanged;
@@ -294,36 +296,19 @@ namespace MeshCentralRouter
             // Prevent edgecase where the hook priority can be on and the hook disabled causing havoc
             if (!Settings.GetRegValue("Exp_KeyboardHook", false)) { Settings.SetRegValue("Exp_KeyboardHookPriority", false); }
 
+            // Populate server combo box with saved servers
+            PopulateSavedServers();
+
+            // Set the last used server and username
             serverNameComboBox.Text = Settings.GetRegValue("ServerName", "");
             userNameTextBox.Text = Settings.GetRegValue("UserName", "");
             notifyIcon.Visible = Settings.GetRegValue("NotifyIcon", false);
 
-            // Load saved password if available and not expired (30 days)
-            string savedPassword = Settings.GetRegValue("SavedPassword", "");
-            string savedPasswordDate = Settings.GetRegValue("SavedPasswordDate", "");
-            if (!string.IsNullOrEmpty(savedPassword) && !string.IsNullOrEmpty(savedPasswordDate))
-            {
-                try
-                {
-                    DateTime savedDate = DateTime.Parse(savedPasswordDate);
-                    if ((DateTime.Now - savedDate).TotalDays <= 30)
-                    {
-                        string decryptedPassword = MeshUtils.DecryptPassword(savedPassword);
-                        if (decryptedPassword != null)
-                        {
-                            passwordTextBox.Text = decryptedPassword;
-                            rememberPasswordCheckBox.Checked = true;
-                        }
-                    }
-                    else
-                    {
-                        // Password expired, clear it
-                        Settings.SetRegValue("SavedPassword", "");
-                        Settings.SetRegValue("SavedPasswordDate", "");
-                    }
-                }
-                catch (Exception) { }
-            }
+            // Load saved credentials for the current server
+            LoadCredentialsForServer(serverNameComboBox.Text, userNameTextBox.Text);
+
+            // Hook up server selection changed event
+            serverNameComboBox.SelectedIndexChanged += ServerNameComboBox_ServerSelected;
 
             title = this.Text;
             initialHeight = this.Height;
@@ -617,6 +602,264 @@ namespace MeshCentralRouter
             if (userNameTextBox.Text.Length == 0) { ok = false; }
             if (passwordTextBox.Text.Length == 0) { ok = false; }
             nextButton1.Enabled = ok;
+
+            // Update delete button visibility when server name changes
+            UpdateDeleteButtonVisibility();
+        }
+
+        /// <summary>
+        /// Populate the server combo box with saved servers
+        /// </summary>
+        private void PopulateSavedServers()
+        {
+            serverNameComboBox.Items.Clear();
+            List<string> serverNames = Settings.GetSavedServerNames();
+            foreach (string serverName in serverNames)
+            {
+                serverNameComboBox.Items.Add(serverName);
+            }
+
+            // Setup context menu for removing saved servers
+            if (serverNameComboBox.ContextMenuStrip == null)
+            {
+                ContextMenuStrip serverContextMenu = new ContextMenuStrip();
+                ToolStripMenuItem removeItem = new ToolStripMenuItem(Translate.T("Remove Saved Server"));
+                removeItem.Click += RemoveSavedServerMenuItem_Click;
+                serverContextMenu.Items.Add(removeItem);
+                serverContextMenu.Opening += ServerContextMenu_Opening;
+                serverNameComboBox.ContextMenuStrip = serverContextMenu;
+            }
+
+            // Setup delete button next to server combo box
+            if (deleteServerButton == null)
+            {
+                deleteServerButton = new Button();
+                deleteServerButton.Text = "✕";
+                deleteServerButton.Font = new Font(deleteServerButton.Font.FontFamily, 8f, FontStyle.Bold);
+                deleteServerButton.Size = new Size(24, serverNameComboBox.Height);
+                deleteServerButton.FlatStyle = FlatStyle.Flat;
+                deleteServerButton.FlatAppearance.BorderSize = 1;
+                deleteServerButton.Cursor = Cursors.Hand;
+                deleteServerButton.TabStop = false;
+                deleteServerButton.Click += DeleteServerButton_Click;
+
+                // Add tooltip
+                ToolTip toolTip = new ToolTip();
+                toolTip.SetToolTip(deleteServerButton, Translate.T("Remove Saved Server"));
+
+                // Add to the same parent as serverNameComboBox
+                serverNameComboBox.Parent.Controls.Add(deleteServerButton);
+
+                // Position it to the right of the combo box
+                UpdateDeleteButtonPosition();
+
+                // Hook up resize event to reposition button
+                serverNameComboBox.Resize += (s, e) => UpdateDeleteButtonPosition();
+                serverNameComboBox.LocationChanged += (s, e) => UpdateDeleteButtonPosition();
+            }
+
+            // Update button visibility
+            UpdateDeleteButtonVisibility();
+        }
+
+        /// <summary>
+        /// Update the position of the delete server button
+        /// </summary>
+        private void UpdateDeleteButtonPosition()
+        {
+            if (deleteServerButton != null && serverNameComboBox != null)
+            {
+                deleteServerButton.Location = new Point(
+                    serverNameComboBox.Right + 4,
+                    serverNameComboBox.Top + (serverNameComboBox.Height - deleteServerButton.Height) / 2
+                );
+                deleteServerButton.BringToFront();
+            }
+        }
+
+        /// <summary>
+        /// Update visibility of the delete button based on whether current server is saved
+        /// </summary>
+        private void UpdateDeleteButtonVisibility()
+        {
+            if (deleteServerButton == null) return;
+
+            string serverName = serverNameComboBox.Text;
+            if (string.IsNullOrEmpty(serverName))
+            {
+                deleteServerButton.Visible = false;
+                return;
+            }
+
+            Settings.SavedServer savedServer = Settings.FindSavedServerByName(serverName);
+            deleteServerButton.Visible = (savedServer != null);
+        }
+
+        /// <summary>
+        /// Handle delete button click
+        /// </summary>
+        private void DeleteServerButton_Click(object sender, EventArgs e)
+        {
+            string serverName = serverNameComboBox.Text;
+            if (string.IsNullOrEmpty(serverName)) return;
+
+            // Confirm deletion
+            DialogResult result = MessageBox.Show(
+                string.Format(Translate.T("Remove saved server \"{0}\"?"), serverName),
+                Translate.T("Remove Saved Server"),
+                MessageBoxButtons.YesNo,
+                MessageBoxIcon.Question
+            );
+
+            if (result == DialogResult.Yes)
+            {
+                // Find all saved entries for this server and remove them
+                List<Settings.SavedServer> servers = Settings.GetSavedServers();
+                foreach (Settings.SavedServer server in servers)
+                {
+                    if (server.ServerName.Equals(serverName, StringComparison.OrdinalIgnoreCase))
+                    {
+                        Settings.RemoveSavedServer(server.ServerName, server.UserName);
+                    }
+                }
+
+                // Clear the fields
+                serverNameComboBox.Text = "";
+                userNameTextBox.Text = "";
+                passwordTextBox.Text = "";
+                rememberPasswordCheckBox.Checked = false;
+
+                // Refresh the combo box
+                RefreshSavedServersComboBox();
+                UpdateDeleteButtonVisibility();
+
+                // Focus on server field
+                serverNameComboBox.Focus();
+            }
+        }
+
+        /// <summary>
+        /// Handle context menu opening - only show if there's a server to remove
+        /// </summary>
+        private void ServerContextMenu_Opening(object sender, System.ComponentModel.CancelEventArgs e)
+        {
+            string serverName = serverNameComboBox.Text;
+            if (string.IsNullOrEmpty(serverName))
+            {
+                e.Cancel = true;
+                return;
+            }
+
+            // Check if this server is in our saved list
+            Settings.SavedServer savedServer = Settings.FindSavedServerByName(serverName);
+            if (savedServer == null)
+            {
+                e.Cancel = true;
+            }
+        }
+
+        /// <summary>
+        /// Remove the currently selected/typed server from saved servers
+        /// </summary>
+        private void RemoveSavedServerMenuItem_Click(object sender, EventArgs e)
+        {
+            string serverName = serverNameComboBox.Text;
+            if (string.IsNullOrEmpty(serverName)) return;
+
+            // Find all saved entries for this server
+            List<Settings.SavedServer> servers = Settings.GetSavedServers();
+            bool removed = false;
+            foreach (Settings.SavedServer server in servers)
+            {
+                if (server.ServerName.Equals(serverName, StringComparison.OrdinalIgnoreCase))
+                {
+                    Settings.RemoveSavedServer(server.ServerName, server.UserName);
+                    removed = true;
+                }
+            }
+
+            if (removed)
+            {
+                // Refresh the combo box
+                RefreshSavedServersComboBox();
+            }
+        }
+
+        /// <summary>
+        /// Load credentials for a specific server
+        /// </summary>
+        private void LoadCredentialsForServer(string serverName, string userName = null)
+        {
+            if (string.IsNullOrEmpty(serverName)) return;
+
+            Settings.SavedServer savedServer = null;
+
+            // First try to find by server name and username
+            if (!string.IsNullOrEmpty(userName))
+            {
+                savedServer = Settings.GetSavedServer(serverName, userName);
+            }
+
+            // If not found, try to find by server name only
+            if (savedServer == null)
+            {
+                savedServer = Settings.FindSavedServerByName(serverName);
+            }
+
+            if (savedServer != null)
+            {
+                // Fill in username if we found a match
+                if (!string.IsNullOrEmpty(savedServer.UserName))
+                {
+                    userNameTextBox.Text = savedServer.UserName;
+                }
+
+                // Load password if available and not expired (30 days)
+                if (!string.IsNullOrEmpty(savedServer.EncryptedPassword) && savedServer.PasswordDate.HasValue)
+                {
+                    if ((DateTime.Now - savedServer.PasswordDate.Value).TotalDays <= 30)
+                    {
+                        string decryptedPassword = MeshUtils.DecryptPassword(savedServer.EncryptedPassword);
+                        if (decryptedPassword != null)
+                        {
+                            passwordTextBox.Text = decryptedPassword;
+                            rememberPasswordCheckBox.Checked = true;
+                        }
+                    }
+                }
+            }
+        }
+
+        /// <summary>
+        /// Handle server selection from combo box
+        /// </summary>
+        private void ServerNameComboBox_ServerSelected(object sender, EventArgs e)
+        {
+            // Only act on actual selection from dropdown, not text changes
+            if (serverNameComboBox.SelectedIndex >= 0)
+            {
+                string selectedServer = serverNameComboBox.SelectedItem?.ToString();
+                if (!string.IsNullOrEmpty(selectedServer))
+                {
+                    // Clear current credentials
+                    userNameTextBox.Text = "";
+                    passwordTextBox.Text = "";
+                    rememberPasswordCheckBox.Checked = false;
+
+                    // Load credentials for the selected server
+                    LoadCredentialsForServer(selectedServer);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Refresh the server combo box while preserving current text
+        /// </summary>
+        private void RefreshSavedServersComboBox()
+        {
+            string currentText = serverNameComboBox.Text;
+            PopulateSavedServers();
+            serverNameComboBox.Text = currentText;
         }
 
         private void updatePanel2(object sender, EventArgs e)
@@ -1175,6 +1418,12 @@ namespace MeshCentralRouter
                 passwordTextBox.Enabled = true;
                 this.Text = title;
 
+                // Reload saved credentials for the current server
+                if (meshcentral.disconnectMsg == "connected" || meshcentral.disconnectMsg == null)
+                {
+                    LoadCredentialsForServer(serverNameComboBox.Text, userNameTextBox.Text);
+                }
+
                 // Clean up all mappings
                 foreach (Control c in mapPanel.Controls)
                 {
@@ -1237,15 +1486,22 @@ namespace MeshCentralRouter
                 {
                     Settings.SetRegValue("ServerName", serverNameComboBox.Text);
                     Settings.SetRegValue("UserName", userNameTextBox.Text);
-                    
+
                     // Save or clear password based on remember checkbox
                     if (rememberPasswordCheckBox.Checked)
                     {
                         string encryptedPassword = MeshUtils.EncryptPassword(passwordTextBox.Text);
                         if (encryptedPassword != null)
                         {
+                            // Save to legacy single-server storage
                             Settings.SetRegValue("SavedPassword", encryptedPassword);
                             Settings.SetRegValue("SavedPasswordDate", DateTime.Now.ToString("o"));
+
+                            // Save to multi-server storage
+                            Settings.SaveServer(serverNameComboBox.Text, userNameTextBox.Text, encryptedPassword);
+
+                            // Refresh the server combo box list
+                            RefreshSavedServersComboBox();
                         }
                     }
                     else

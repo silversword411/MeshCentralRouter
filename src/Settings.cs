@@ -195,5 +195,169 @@ namespace MeshCentralRouter
             catch (Exception) { }
             return null; // No saved state
         }
+
+        /// <summary>
+        /// Class to hold saved server credentials
+        /// </summary>
+        public class SavedServer
+        {
+            public string ServerName { get; set; }
+            public string UserName { get; set; }
+            public string EncryptedPassword { get; set; }
+            public DateTime? PasswordDate { get; set; }
+        }
+
+        /// <summary>
+        /// Get all saved servers from registry
+        /// </summary>
+        public static List<SavedServer> GetSavedServers()
+        {
+            List<SavedServer> servers = new List<SavedServer>();
+            try
+            {
+                using (RegistryKey key = Registry.CurrentUser.OpenSubKey(@"SOFTWARE\Open Source\MeshCentral Router\SavedServers", false))
+                {
+                    if (key != null)
+                    {
+                        string[] subKeys = key.GetSubKeyNames();
+                        foreach (string subKeyName in subKeys)
+                        {
+                            using (RegistryKey serverKey = key.OpenSubKey(subKeyName, false))
+                            {
+                                if (serverKey != null)
+                                {
+                                    SavedServer server = new SavedServer();
+                                    server.ServerName = serverKey.GetValue("ServerName", "").ToString();
+                                    server.UserName = serverKey.GetValue("UserName", "").ToString();
+                                    server.EncryptedPassword = serverKey.GetValue("EncryptedPassword", "").ToString();
+                                    string dateStr = serverKey.GetValue("PasswordDate", "").ToString();
+                                    if (!string.IsNullOrEmpty(dateStr))
+                                    {
+                                        try { server.PasswordDate = DateTime.Parse(dateStr); }
+                                        catch { server.PasswordDate = null; }
+                                    }
+                                    if (!string.IsNullOrEmpty(server.ServerName))
+                                    {
+                                        servers.Add(server);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            catch (Exception) { }
+            return servers;
+        }
+
+        /// <summary>
+        /// Save a server's credentials to registry
+        /// </summary>
+        public static void SaveServer(string serverName, string userName, string encryptedPassword)
+        {
+            if (string.IsNullOrEmpty(serverName)) return;
+            try
+            {
+                string serverKey = GetServerKeyName(serverName + "|" + userName);
+                string keyPath = @"SOFTWARE\Open Source\MeshCentral Router\SavedServers\" + serverKey;
+                using (RegistryKey key = Registry.CurrentUser.CreateSubKey(keyPath, true))
+                {
+                    if (key != null)
+                    {
+                        key.SetValue("ServerName", serverName);
+                        key.SetValue("UserName", userName ?? "");
+                        key.SetValue("EncryptedPassword", encryptedPassword ?? "");
+                        key.SetValue("PasswordDate", DateTime.Now.ToString("o"));
+                    }
+                }
+            }
+            catch (Exception) { }
+        }
+
+        /// <summary>
+        /// Get a specific saved server by name and username
+        /// </summary>
+        public static SavedServer GetSavedServer(string serverName, string userName)
+        {
+            if (string.IsNullOrEmpty(serverName)) return null;
+            try
+            {
+                string serverKey = GetServerKeyName(serverName + "|" + userName);
+                string keyPath = @"SOFTWARE\Open Source\MeshCentral Router\SavedServers\" + serverKey;
+                using (RegistryKey key = Registry.CurrentUser.OpenSubKey(keyPath, false))
+                {
+                    if (key != null)
+                    {
+                        SavedServer server = new SavedServer();
+                        server.ServerName = key.GetValue("ServerName", "").ToString();
+                        server.UserName = key.GetValue("UserName", "").ToString();
+                        server.EncryptedPassword = key.GetValue("EncryptedPassword", "").ToString();
+                        string dateStr = key.GetValue("PasswordDate", "").ToString();
+                        if (!string.IsNullOrEmpty(dateStr))
+                        {
+                            try { server.PasswordDate = DateTime.Parse(dateStr); }
+                            catch { server.PasswordDate = null; }
+                        }
+                        return server;
+                    }
+                }
+            }
+            catch (Exception) { }
+            return null;
+        }
+
+        /// <summary>
+        /// Find a saved server by server name only (returns first match)
+        /// </summary>
+        public static SavedServer FindSavedServerByName(string serverName)
+        {
+            if (string.IsNullOrEmpty(serverName)) return null;
+            List<SavedServer> servers = GetSavedServers();
+            foreach (SavedServer server in servers)
+            {
+                if (server.ServerName.Equals(serverName, StringComparison.OrdinalIgnoreCase))
+                {
+                    return server;
+                }
+            }
+            return null;
+        }
+
+        /// <summary>
+        /// Remove a saved server from registry
+        /// </summary>
+        public static void RemoveSavedServer(string serverName, string userName)
+        {
+            if (string.IsNullOrEmpty(serverName)) return;
+            try
+            {
+                string serverKey = GetServerKeyName(serverName + "|" + userName);
+                using (RegistryKey key = Registry.CurrentUser.OpenSubKey(@"SOFTWARE\Open Source\MeshCentral Router\SavedServers", true))
+                {
+                    if (key != null)
+                    {
+                        key.DeleteSubKey(serverKey, false);
+                    }
+                }
+            }
+            catch (Exception) { }
+        }
+
+        /// <summary>
+        /// Get unique server names from all saved servers
+        /// </summary>
+        public static List<string> GetSavedServerNames()
+        {
+            List<string> serverNames = new List<string>();
+            List<SavedServer> servers = GetSavedServers();
+            foreach (SavedServer server in servers)
+            {
+                if (!string.IsNullOrEmpty(server.ServerName) && !serverNames.Contains(server.ServerName))
+                {
+                    serverNames.Add(server.ServerName);
+                }
+            }
+            return serverNames;
+        }
     }
 }

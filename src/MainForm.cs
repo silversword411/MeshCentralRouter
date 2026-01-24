@@ -77,6 +77,7 @@ namespace MeshCentralRouter
         private bool hasLoadedServerState = false; // Track if we've loaded state for current server
         // Delete saved server button
         private Button deleteServerButton = null;
+        private Button clearSearchButton = null;
 
         public delegate void ClipboardChangedHandler();
         public event ClipboardChangedHandler ClipboardChanged;
@@ -247,6 +248,11 @@ namespace MeshCentralRouter
 
         [DllImport("User32.dll")]
         public static extern Int32 SetForegroundWindow(int hWnd);
+
+        [DllImport("user32.dll")]
+        private static extern IntPtr SendMessage(IntPtr hWnd, int msg, IntPtr wParam, IntPtr lParam);
+        private const int EM_SETMARGINS = 0xd3;
+        private const int EC_RIGHTMARGIN = 0x2;
 
         private bool RemoteCertificateValidationCallback(object sender, X509Certificate certificate, X509Chain chain, System.Net.Security.SslPolicyErrors sslPolicyErrors)
         {
@@ -545,6 +551,7 @@ namespace MeshCentralRouter
             setPanel(1);
             updatePanel1(null, null);
             SendMessage(searchTextBox.Handle, EM_SETCUEBANNER, 0, Translate.T(Properties.Resources.SearchPlaceHolder));
+            AddSearchClearButton();
 
             // Start the multicast scanner
             //scanner = new MeshDiscovery();
@@ -784,6 +791,89 @@ namespace MeshCentralRouter
             {
                 // Refresh the combo box
                 RefreshSavedServersComboBox();
+            }
+        }
+
+        private void AddSearchClearButton()
+        {
+            if (clearSearchButton == null)
+            {
+                // Create the button
+                clearSearchButton = new Button();
+                clearSearchButton.Text = ""; // We will paint it manually
+                clearSearchButton.Font = new Font("Segoe UI", 8F, FontStyle.Regular);
+                clearSearchButton.FlatStyle = FlatStyle.Flat;
+                clearSearchButton.FlatAppearance.BorderSize = 0;
+                clearSearchButton.Cursor = Cursors.Hand;
+                clearSearchButton.TabStop = false;
+                clearSearchButton.BackColor = SystemColors.Window;
+                clearSearchButton.Click += ClearSearchButton_Click;
+                clearSearchButton.Paint += ClearSearchButton_Paint;
+                
+                // Add to controls
+                searchTextBox.Parent.Controls.Add(clearSearchButton);
+                clearSearchButton.BringToFront();
+
+                // Setup events for positioning
+                EventHandler updatePosition = (s, ev) => UpdateSearchClearButtonPosition();
+                searchTextBox.Resize += updatePosition;
+                searchTextBox.Move += updatePosition; // Critical: Search box might move if anchored Right
+                searchTextBox.Parent.Resize += updatePosition; // Safety catch
+
+                // Initial position update
+                UpdateSearchClearButtonPosition();
+
+                // Set margin so text doesn't go under the button
+                // Calculate roughly the button width plus a little padding
+                int margin = searchTextBox.ClientSize.Height + 2;
+                SendMessage(searchTextBox.Handle, EM_SETMARGINS, (IntPtr)EC_RIGHTMARGIN, (IntPtr)(margin << 16));
+            }
+            UpdateSearchClearButtonVisibility();
+        }
+
+        private void UpdateSearchClearButtonPosition()
+        {
+            if (clearSearchButton != null && searchTextBox != null)
+            {
+                // Use a square button based on client height, but simpler math
+                int dim = searchTextBox.ClientSize.Height;
+                clearSearchButton.Size = new Size(dim, dim);
+                
+                // Position inside the box, right aligned
+                // Move 1px left (offset) to ensure we don't hit the border
+                int x = searchTextBox.Right - dim - 1; 
+                
+                // Center vertically relative to the textbox
+                int y = searchTextBox.Top + (searchTextBox.Height - dim) / 2;
+                
+                clearSearchButton.Location = new Point(x, y);
+            }
+        }
+
+        private void ClearSearchButton_Click(object sender, EventArgs e)
+        {
+            searchTextBox.Text = "";
+            searchTextBox.Focus();
+        }
+
+        private void ClearSearchButton_Paint(object sender, PaintEventArgs e)
+        {
+            Button btn = (Button)sender;
+            using (StringFormat sf = new StringFormat())
+            {
+                sf.Alignment = StringAlignment.Center;
+                sf.LineAlignment = StringAlignment.Center;
+                // Draw 'x' slightly higher if needed, but Center/Center usually works best for most fonts.
+                // If it still looks too low, we can adjust the rectangle.
+                e.Graphics.DrawString("✕", btn.Font, Brushes.Black, btn.ClientRectangle, sf);
+            }
+        }
+
+        private void UpdateSearchClearButtonVisibility()
+        {
+            if (clearSearchButton != null)
+            {
+                clearSearchButton.Visible = !string.IsNullOrEmpty(searchTextBox.Text);
             }
         }
 
@@ -2051,6 +2141,7 @@ namespace MeshCentralRouter
 
         private void searchTextBox_TextChanged(object sender, EventArgs e)
         {
+            UpdateSearchClearButtonVisibility();
             if (deviceListViewMode)
             {
                 // Filter devices

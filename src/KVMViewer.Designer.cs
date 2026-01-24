@@ -23,7 +23,7 @@ namespace MeshCentralRouter
     public class TitleBarWithCenterPanel : System.Windows.Forms.Panel
     {
         private System.Drawing.Color centerColor = System.Drawing.Color.FromArgb(40, 40, 40);
-        private int centerWidth = 150;
+        private int centerWidth = 200;
         private int angleWidth = 20;
 
         public System.Drawing.Color CenterColor
@@ -377,13 +377,13 @@ namespace MeshCentralRouter
             this.updateTimer = new System.Windows.Forms.Timer(this.components);
             this.statisticsRefreshTimer = new System.Windows.Forms.Timer(this.components);
             this.topPanel = new System.Windows.Forms.Panel();
-            this.chatButton = new MeshCentralRouter.RoundedButton();
+            this.chatButton = new System.Windows.Forms.Button();
             this.chatSeparator = new System.Windows.Forms.Panel();
             this.consentContextMenuStrip = new System.Windows.Forms.ContextMenuStrip(this.components);
             this.askConsentBarToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.askConsentToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.privacyBarToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
-            this.openRemoteFilesButton = new MeshCentralRouter.RoundedButton();
+            this.openRemoteFilesButton = new System.Windows.Forms.Button();
             this.extraButtonsPanel = new System.Windows.Forms.Panel();
             this.splitButton = new System.Windows.Forms.Button();
             this.clipOutboundButton = new System.Windows.Forms.Button();
@@ -496,7 +496,7 @@ namespace MeshCentralRouter
             this.gearButton.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
             this.gearButton.FlatAppearance.BorderSize = 0;
             this.gearButton.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.gearButton.Location = new System.Drawing.Point(384, 4);
+            this.gearButton.Location = new System.Drawing.Point(409, 4);
             this.gearButton.Name = "gearButton";
             this.gearButton.Size = new System.Drawing.Size(32, 24);
             this.gearButton.TabIndex = 5;
@@ -512,7 +512,7 @@ namespace MeshCentralRouter
             this.displayButton.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
             this.displayButton.FlatAppearance.BorderSize = 0;
             this.displayButton.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.displayButton.Location = new System.Drawing.Point(352, 4);
+            this.displayButton.Location = new System.Drawing.Point(345, 4);
             this.displayButton.Name = "displayButton";
             this.displayButton.Size = new System.Drawing.Size(32, 24);
             this.displayButton.TabIndex = 12;
@@ -528,7 +528,7 @@ namespace MeshCentralRouter
             this.infoButton.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
             this.infoButton.FlatAppearance.BorderSize = 0;
             this.infoButton.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.infoButton.Location = new System.Drawing.Point(416, 4);
+            this.infoButton.Location = new System.Drawing.Point(441, 4);
             this.infoButton.Name = "infoButton";
             this.infoButton.Size = new System.Drawing.Size(32, 24);
             this.infoButton.TabIndex = 11;
@@ -686,21 +686,23 @@ namespace MeshCentralRouter
             this.topPanel.Name = "topPanel";
             this.topPanel.Visible = false;
             //
-            // chatButton
+            // chatButton - moved to center titlebar icons, to the left of settings (gearButton)
             //
-            this.chatButton.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
+            this.chatButton.Anchor = System.Windows.Forms.AnchorStyles.Top;
             this.chatButton.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
             this.chatButton.FlatAppearance.BorderSize = 0;
             this.chatButton.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.chatButton.Location = new System.Drawing.Point(627, 2);
+            this.chatButton.Location = new System.Drawing.Point(377, 4);
             this.chatButton.Name = "chatButton";
-            this.chatButton.Size = new System.Drawing.Size(56, 26);
+            this.chatButton.Size = new System.Drawing.Size(32, 24);
             this.chatButton.TabIndex = 6;
-            this.chatButton.Text = "Chat";
+            this.chatButton.Image = global::MeshCentralRouter.Properties.Resources.Chat20;
+            this.chatButton.ImageAlign = System.Drawing.ContentAlignment.MiddleCenter;
+            this.chatButton.Text = "";
             this.chatButton.UseVisualStyleBackColor = true;
             this.chatButton.Click += new System.EventHandler(this.chatButton_Click);
             //
-            // chatSeparator
+            // chatSeparator - no longer used since chat button moved to center
             //
             this.chatSeparator.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
             this.chatSeparator.BackColor = System.Drawing.Color.Gray;
@@ -708,6 +710,7 @@ namespace MeshCentralRouter
             this.chatSeparator.Name = "chatSeparator";
             this.chatSeparator.Size = new System.Drawing.Size(1, 26);
             this.chatSeparator.TabIndex = 7;
+            this.chatSeparator.Visible = false;
             //
             // consentContextMenuStrip
             // 
@@ -738,17 +741,19 @@ namespace MeshCentralRouter
             resources.ApplyResources(this.privacyBarToolStripMenuItem, "privacyBarToolStripMenuItem");
             this.privacyBarToolStripMenuItem.Click += new System.EventHandler(this.privacyBarToolStripMenuItem_Click);
             //
-            // openRemoteFilesButton
+            // openRemoteFilesButton - moved to center titlebar icons, to the left of chat
             //
-            this.openRemoteFilesButton.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
+            this.openRemoteFilesButton.Anchor = System.Windows.Forms.AnchorStyles.Top;
             this.openRemoteFilesButton.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
             this.openRemoteFilesButton.FlatAppearance.BorderSize = 0;
             this.openRemoteFilesButton.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.openRemoteFilesButton.Location = new System.Drawing.Point(560, 2);
+            this.openRemoteFilesButton.Location = new System.Drawing.Point(377, 4);
             this.openRemoteFilesButton.Name = "openRemoteFilesButton";
-            this.openRemoteFilesButton.Size = new System.Drawing.Size(56, 26);
+            this.openRemoteFilesButton.Size = new System.Drawing.Size(32, 24);
             this.openRemoteFilesButton.TabIndex = 8;
-            this.openRemoteFilesButton.Text = "Files";
+            this.openRemoteFilesButton.Image = global::MeshCentralRouter.Properties.Resources.Files20;
+            this.openRemoteFilesButton.ImageAlign = System.Drawing.ContentAlignment.MiddleCenter;
+            this.openRemoteFilesButton.Text = "";
             this.openRemoteFilesButton.UseVisualStyleBackColor = true;
             this.openRemoteFilesButton.Click += new System.EventHandler(this.openRemoteFilesButton_Click);
             // 
@@ -939,8 +944,8 @@ namespace MeshCentralRouter
         private Button splitButton;
         private Panel extraButtonsPanel;
         private ImageList displaySelectorImageList;
-        private RoundedButton openRemoteFilesButton;
-        private RoundedButton chatButton;
+        private Button openRemoteFilesButton;
+        private Button chatButton;
         private Panel chatSeparator;
     }
 }

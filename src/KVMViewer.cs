@@ -644,13 +644,25 @@ namespace MeshCentralRouter
 
         private void CenterTitleBarControls()
         {
-            // Center the display, gear and info buttons in the title bar (with small spacing between them)
+            // Center the display, files, chat, gear and info buttons in the title bar (with small spacing between them)
             int spacing = 4;
-            int totalWidth = displayButton.Width + spacing + gearButton.Width + spacing + infoButton.Width;
+            int totalWidth = displayButton.Width + spacing + openRemoteFilesButton.Width + spacing + chatButton.Width + spacing + gearButton.Width + spacing + infoButton.Width;
             int startX = (titleBarPanel.Width - totalWidth) / 2;
-            displayButton.Location = new Point(startX, displayButton.Location.Y);
-            gearButton.Location = new Point(startX + displayButton.Width + spacing, gearButton.Location.Y);
-            infoButton.Location = new Point(startX + displayButton.Width + spacing + gearButton.Width + spacing, infoButton.Location.Y);
+            int currentX = startX;
+
+            displayButton.Location = new Point(currentX, displayButton.Location.Y);
+            currentX += displayButton.Width + spacing;
+
+            openRemoteFilesButton.Location = new Point(currentX, openRemoteFilesButton.Location.Y);
+            currentX += openRemoteFilesButton.Width + spacing;
+
+            chatButton.Location = new Point(currentX, chatButton.Location.Y);
+            currentX += chatButton.Width + spacing;
+
+            gearButton.Location = new Point(currentX, gearButton.Location.Y);
+            currentX += gearButton.Width + spacing;
+
+            infoButton.Location = new Point(currentX, infoButton.Location.Y);
 
             // Also center the dropdown pane if it's visible
             if (dropdownPane.Visible)
@@ -665,7 +677,6 @@ namespace MeshCentralRouter
             // Position buttons from the right edge moving left to avoid overlap
             int padding = 6;
             int spacing = 6;
-            int separatorSpacing = 8; // Spacing around the separator
             int y = closeButton.Location.Y;
             int x = titleBarPanel.Width - padding;
 
@@ -683,23 +694,6 @@ namespace MeshCentralRouter
 
             x -= spacing + zoomButton.Width;
             zoomButton.Location = new Point(x, y);
-
-            // Vertical separator line (80% of title bar height, centered vertically)
-            int separatorHeight = (int)(titleBarPanel.Height * 0.8);
-            int separatorY = (titleBarPanel.Height - separatorHeight) / 2;
-            x -= separatorSpacing;
-            chatSeparator.Size = new Size(1, separatorHeight);
-            chatSeparator.Location = new Point(x, separatorY);
-
-            // Chat button with spacing after separator (centered vertically)
-            x -= separatorSpacing + chatButton.Width;
-            int chatY = (titleBarPanel.Height - chatButton.Height) / 2;
-            chatButton.Location = new Point(x, chatY);
-
-            // Files button to the left of chat (with small spacing)
-            x -= spacing + openRemoteFilesButton.Width;
-            int filesY = (titleBarPanel.Height - openRemoteFilesButton.Height) / 2;
-            openRemoteFilesButton.Location = new Point(x, filesY);
         }
 
         private void UpdateMaximizeButtonIcon()
@@ -2330,13 +2324,19 @@ namespace MeshCentralRouter
             closeButton.ForeColor = titleBarTextColor;
             closeButton.FlatAppearance.MouseOverBackColor = Color.FromArgb(232, 17, 35);
 
-            // Update chat button in title bar (use center panel color for pill background)
-            chatButton.FillColor = theme.IsDarkMode ? Color.FromArgb(65, 65, 65) : Color.FromArgb(200, 200, 200);
+            // Update chat button in title bar (icon button style, same as gear/display/info buttons)
+            chatButton.BackColor = titleBarColor;
             chatButton.ForeColor = titleBarTextColor;
+            chatButton.FlatAppearance.MouseOverBackColor = theme.GetButtonHoverColor();
+            chatButton.Image = GetTintedIcon(Properties.Resources.Chat20, titleBarTextColor);
+            chatButton.Text = "";
 
-            // Update files button in title bar (same style as chat)
-            openRemoteFilesButton.FillColor = theme.IsDarkMode ? Color.FromArgb(65, 65, 65) : Color.FromArgb(200, 200, 200);
+            // Update files button in title bar (icon button style, same as gear/display/info buttons)
+            openRemoteFilesButton.BackColor = titleBarColor;
             openRemoteFilesButton.ForeColor = titleBarTextColor;
+            openRemoteFilesButton.FlatAppearance.MouseOverBackColor = theme.GetButtonHoverColor();
+            openRemoteFilesButton.Image = GetTintedIcon(Properties.Resources.Files20, titleBarTextColor);
+            openRemoteFilesButton.Text = "";
 
             // Update connect button in title bar (same style as chat)
             connectButton.FillColor = theme.IsDarkMode ? Color.FromArgb(65, 65, 65) : Color.FromArgb(200, 200, 200);

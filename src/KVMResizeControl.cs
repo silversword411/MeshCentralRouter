@@ -93,7 +93,6 @@ namespace MeshCentralRouter
                 double sfx = (double)kvmControl.DesktopWidth / (double)Width;
                 double sfy = (double)kvmControl.DesktopHeight / (double)Height;
                 double sf = Math.Max(sfx, sfy);
-                sf = Math.Max(1, sf);
                 if ((kvmControl.ScaleFactor != sf) || (forceRefresh))
                 {
                     kvmControl.Size = new System.Drawing.Size((int)((double)kvmControl.DesktopWidth / sf), (int)((double)kvmControl.DesktopHeight / sf));

@@ -429,6 +429,7 @@ namespace MeshCentralRouter
             this.titleBarPanel.MouseDown += new System.Windows.Forms.MouseEventHandler(this.titleBarPanel_MouseDown);
             this.titleBarPanel.MouseMove += new System.Windows.Forms.MouseEventHandler(this.titleBarPanel_MouseMove);
             this.titleBarPanel.MouseUp += new System.Windows.Forms.MouseEventHandler(this.titleBarPanel_MouseUp);
+            this.titleBarPanel.DoubleClick += new System.EventHandler(this.titleBarPanel_DoubleClick);
             //
             // closeButton
             //

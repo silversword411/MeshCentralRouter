@@ -103,6 +103,20 @@ namespace MeshCentralRouter
         // Frame rate panel toggle button group
         private ToggleButtonGroup frameRateButtonGroup;
 
+        // Display scaling controls
+        private Label scalingLevelLabel;
+        private int currentScalingPercent = 100; // Current display zoom percentage (50-200)
+        private List<Button> scalingPresetButtons = new List<Button>();
+
+        // Auto-hide title bar when maximized
+        private bool titleBarVisible = true;
+        private System.Windows.Forms.Timer titleBarHideTimer;
+        private System.Windows.Forms.Timer titleBarAnimationTimer;
+        private System.Windows.Forms.Timer titleBarShowDelayTimer;
+        private int titleBarTargetTop;
+        private const int TITLE_BAR_ANIMATION_STEP = 4;
+        private const int TITLE_BAR_SHOW_DELAY_MS = 100;
+
         public KVMViewer(MainForm parent, MeshCentralServer server, NodeClass node)
         {
             this.parent = parent;
@@ -158,6 +172,25 @@ namespace MeshCentralRouter
             bool statusBarVisible = Settings.GetRegValue("kvmStatusBarVisible", "1").Equals("1");
             mainStatusStrip.Visible = statusBarVisible;
             paneStatusBarToggleSwitch.Checked = statusBarVisible;
+
+            // Load display scaling preference
+            try { currentScalingPercent = int.Parse(Settings.GetRegValue("kvmDisplayScaling", "100")); } catch (Exception) { currentScalingPercent = 100; }
+            if (currentScalingPercent < 50) currentScalingPercent = 50;
+            if (currentScalingPercent > 200) currentScalingPercent = 200;
+
+            // Setup auto-hide title bar timers
+            titleBarHideTimer = new System.Windows.Forms.Timer();
+            titleBarHideTimer.Interval = 100;
+            titleBarHideTimer.Tick += TitleBarHideTimer_Tick;
+            titleBarHideTimer.Start();
+
+            titleBarAnimationTimer = new System.Windows.Forms.Timer();
+            titleBarAnimationTimer.Interval = 16; // ~60fps
+            titleBarAnimationTimer.Tick += TitleBarAnimationTimer_Tick;
+
+            titleBarShowDelayTimer = new System.Windows.Forms.Timer();
+            titleBarShowDelayTimer.Interval = TITLE_BAR_SHOW_DELAY_MS;
+            titleBarShowDelayTimer.Tick += TitleBarShowDelayTimer_Tick;
         }
 
         private void KvmControl_ScreenAreaUpdated(Bitmap desktop, Rectangle r)
@@ -487,6 +520,26 @@ namespace MeshCentralRouter
 
         private void Main_FormClosing(object sender, FormClosingEventArgs e)
         {
+            // Stop the title bar hide timer
+            if (titleBarHideTimer != null)
+            {
+                titleBarHideTimer.Stop();
+                titleBarHideTimer.Dispose();
+                titleBarHideTimer = null;
+            }
+            if (titleBarAnimationTimer != null)
+            {
+                titleBarAnimationTimer.Stop();
+                titleBarAnimationTimer.Dispose();
+                titleBarAnimationTimer = null;
+            }
+            if (titleBarShowDelayTimer != null)
+            {
+                titleBarShowDelayTimer.Stop();
+                titleBarShowDelayTimer.Dispose();
+                titleBarShowDelayTimer = null;
+            }
+
             if (wc != null)
             {
                 // Disconnect
@@ -560,6 +613,31 @@ namespace MeshCentralRouter
         {
             if (kvmControl != null) kvmControl.SendPause(WindowState == FormWindowState.Minimized);
             UpdateMaximizeButtonIcon();
+
+            // Handle title bar overlay mode when maximized
+            if (this.WindowState == FormWindowState.Maximized)
+            {
+                // When maximized, hide the title bar initially for auto-hide behavior
+                if (titleBarVisible)
+                {
+                    titleBarVisible = false;
+                    titleBarPanel.Dock = DockStyle.None;
+                    titleBarPanel.Width = this.ClientSize.Width;
+                    titleBarPanel.Top = -titleBarPanel.Height;
+                    titleBarPanel.Left = 0;
+                    titleBarPanel.Visible = false;
+                }
+            }
+            else
+            {
+                // When not maximized, restore normal title bar docking
+                titleBarAnimationTimer.Stop();
+                titleBarShowDelayTimer.Stop();
+                titleBarVisible = true;
+                titleBarPanel.Dock = DockStyle.Top;
+                titleBarPanel.Visible = true;
+            }
+
             CenterTitleBarControls();
             PositionTitleBarButtons();
         }
@@ -1022,6 +1100,181 @@ namespace MeshCentralRouter
             isDragging = false;
         }
 
+        private void titleBarPanel_DoubleClick(object sender, EventArgs e)
+        {
+            // Toggle maximize/restore on double-click
+            if (this.WindowState == FormWindowState.Maximized)
+            {
+                this.WindowState = FormWindowState.Normal;
+            }
+            else
+            {
+                this.WindowState = FormWindowState.Maximized;
+            }
+            UpdateMaximizeButtonIcon();
+        }
+
+        private void TitleBarHideTimer_Tick(object sender, EventArgs e)
+        {
+            // Only auto-hide when maximized
+            if (this.WindowState != FormWindowState.Maximized)
+            {
+                titleBarShowDelayTimer.Stop();
+                titleBarAnimationTimer.Stop();
+                if (!titleBarVisible)
+                {
+                    ShowTitleBar();
+                }
+                return;
+            }
+
+            // Don't process during animation
+            if (titleBarAnimationTimer.Enabled)
+            {
+                return;
+            }
+
+            // Get mouse position in screen coordinates and check if within form bounds
+            Point screenPos = Cursor.Position;
+            Rectangle formBounds = this.Bounds;
+
+            // Check if mouse is within the form's horizontal bounds
+            bool mouseInFormX = screenPos.X >= formBounds.Left && screenPos.X < formBounds.Right;
+
+            // Check if mouse is at the very top of the form (screen coordinates)
+            int triggerZone = 5;
+            bool mouseAtTop = mouseInFormX && screenPos.Y >= formBounds.Top && screenPos.Y <= formBounds.Top + triggerZone;
+
+            // Check if mouse is over the title bar area (when visible)
+            int titleBarHeight = titleBarPanel.Height;
+            bool mouseOverTitleBar = titleBarVisible && mouseInFormX &&
+                screenPos.Y >= formBounds.Top && screenPos.Y <= formBounds.Top + titleBarHeight;
+
+            // Also check if dropdown pane is visible
+            bool dropdownOpen = dropdownPane.Visible;
+
+            if (mouseAtTop || mouseOverTitleBar || dropdownOpen)
+            {
+                if (!titleBarVisible && !titleBarShowDelayTimer.Enabled)
+                {
+                    // Start the delay timer before showing
+                    titleBarShowDelayTimer.Start();
+                }
+            }
+            else
+            {
+                // Mouse moved away, cancel any pending show
+                titleBarShowDelayTimer.Stop();
+
+                if (titleBarVisible && !isDragging)
+                {
+                    HideTitleBar();
+                }
+            }
+        }
+
+        private void TitleBarShowDelayTimer_Tick(object sender, EventArgs e)
+        {
+            titleBarShowDelayTimer.Stop();
+
+            // Verify mouse is still at top before showing (using screen coordinates)
+            Point screenPos = Cursor.Position;
+            Rectangle formBounds = this.Bounds;
+            bool mouseInFormX = screenPos.X >= formBounds.Left && screenPos.X < formBounds.Right;
+            bool mouseAtTop = mouseInFormX && screenPos.Y >= formBounds.Top && screenPos.Y <= formBounds.Top + 5;
+
+            if (mouseAtTop)
+            {
+                ShowTitleBar();
+            }
+        }
+
+        private void TitleBarAnimationTimer_Tick(object sender, EventArgs e)
+        {
+            int currentTop = titleBarPanel.Top;
+
+            if (currentTop < titleBarTargetTop)
+            {
+                // Animating down (showing)
+                int newTop = Math.Min(currentTop + TITLE_BAR_ANIMATION_STEP, titleBarTargetTop);
+                titleBarPanel.Top = newTop;
+
+                if (newTop >= titleBarTargetTop)
+                {
+                    titleBarAnimationTimer.Stop();
+                }
+            }
+            else if (currentTop > titleBarTargetTop)
+            {
+                // Animating up (hiding)
+                int newTop = Math.Max(currentTop - TITLE_BAR_ANIMATION_STEP, titleBarTargetTop);
+                titleBarPanel.Top = newTop;
+
+                if (newTop <= titleBarTargetTop)
+                {
+                    titleBarAnimationTimer.Stop();
+                    if (titleBarTargetTop < 0)
+                    {
+                        titleBarPanel.Visible = false;
+                    }
+                }
+            }
+            else
+            {
+                titleBarAnimationTimer.Stop();
+            }
+        }
+
+        private void ShowTitleBar()
+        {
+            if (titleBarVisible) return;
+            titleBarVisible = true;
+
+            if (this.WindowState == FormWindowState.Maximized)
+            {
+                // Switch to None dock so it can overlay
+                titleBarPanel.Dock = DockStyle.None;
+                titleBarPanel.Width = this.ClientSize.Width;
+                titleBarPanel.Top = -titleBarPanel.Height;
+                titleBarPanel.Left = 0;
+                titleBarPanel.Visible = true;
+                titleBarPanel.BringToFront();
+                dropdownPane.BringToFront();
+                titleBarTargetTop = 0;
+                titleBarAnimationTimer.Start();
+            }
+            else
+            {
+                // Not maximized: restore normal docking
+                titleBarPanel.Dock = DockStyle.Top;
+                titleBarPanel.Visible = true;
+            }
+        }
+
+        private void HideTitleBar()
+        {
+            if (!titleBarVisible) return;
+            titleBarVisible = false;
+
+            // Also hide the dropdown pane if visible
+            if (dropdownPane.Visible)
+            {
+                HideDropdownPane();
+            }
+
+            if (this.WindowState == FormWindowState.Maximized)
+            {
+                // Animate: slide up to hide
+                titleBarTargetTop = -titleBarPanel.Height;
+                titleBarAnimationTimer.Start();
+            }
+            else
+            {
+                // Not maximized: just hide (shouldn't happen, but handle it)
+                titleBarPanel.Visible = false;
+            }
+        }
+
         private void themeButton_Click(object sender, EventArgs e)
         {
             ThemeManager.Instance.IsDarkMode = !ThemeManager.Instance.IsDarkMode;
@@ -1254,7 +1507,92 @@ namespace MeshCentralRouter
             frameRateButtonGroup.SelectedValueChanged += FrameRateButtonGroup_SelectedValueChanged;
 
             dropdownPaneContent.Controls.Add(frameRateButtonGroup);
-            yOffset += itemHeight + 4;
+            yOffset += itemHeight + 8;
+
+            // Scaling section header
+            Label scalingHeader = new Label();
+            scalingHeader.Text = "Scaling";
+            scalingHeader.Font = new Font("Segoe UI", 8.5F, FontStyle.Bold);
+            scalingHeader.ForeColor = paneTextColor;
+            scalingHeader.Location = new Point(sidePadding, yOffset);
+            scalingHeader.Size = new Size(paneWidth - (sidePadding * 2), sectionHeaderHeight);
+            dropdownPaneContent.Controls.Add(scalingHeader);
+            yOffset += sectionHeaderHeight;
+
+            // First row: Zoom Out | Current Level | Zoom In (half-height)
+            int halfHeight = sectionHeaderHeight;
+            int scalingRowWidth = paneWidth - (sidePadding * 2);
+            int zoomButtonWidth = (scalingRowWidth - 4) / 3; // 3 columns with small gaps
+
+            // Zoom out button
+            Button zoomOutBtn = new Button();
+            zoomOutBtn.FlatStyle = FlatStyle.Flat;
+            zoomOutBtn.FlatAppearance.BorderSize = 1;
+            zoomOutBtn.FlatAppearance.BorderColor = borderColor;
+            zoomOutBtn.Font = new Font("Segoe UI", 10F, FontStyle.Bold);
+            zoomOutBtn.ForeColor = paneTextColor;
+            zoomOutBtn.BackColor = paneBgColor;
+            zoomOutBtn.FlatAppearance.MouseOverBackColor = paneHoverColor;
+            zoomOutBtn.Location = new Point(sidePadding, yOffset);
+            zoomOutBtn.Size = new Size(zoomButtonWidth, halfHeight);
+            zoomOutBtn.Text = "−";
+            zoomOutBtn.Click += ScalingZoomOut_Click;
+            dropdownPaneContent.Controls.Add(zoomOutBtn);
+
+            // Current scaling level label (center)
+            scalingLevelLabel = new Label();
+            scalingLevelLabel.Font = new Font("Segoe UI", 9F);
+            scalingLevelLabel.ForeColor = paneTextColor;
+            scalingLevelLabel.BackColor = paneBgColor;
+            scalingLevelLabel.Location = new Point(sidePadding + zoomButtonWidth + 2, yOffset);
+            scalingLevelLabel.Size = new Size(zoomButtonWidth, halfHeight);
+            scalingLevelLabel.TextAlign = ContentAlignment.MiddleCenter;
+            scalingLevelLabel.Text = currentScalingPercent + "%";
+            dropdownPaneContent.Controls.Add(scalingLevelLabel);
+
+            // Zoom in button
+            Button zoomInBtn = new Button();
+            zoomInBtn.FlatStyle = FlatStyle.Flat;
+            zoomInBtn.FlatAppearance.BorderSize = 1;
+            zoomInBtn.FlatAppearance.BorderColor = borderColor;
+            zoomInBtn.Font = new Font("Segoe UI", 10F, FontStyle.Bold);
+            zoomInBtn.ForeColor = paneTextColor;
+            zoomInBtn.BackColor = paneBgColor;
+            zoomInBtn.FlatAppearance.MouseOverBackColor = paneHoverColor;
+            zoomInBtn.Location = new Point(sidePadding + (zoomButtonWidth + 2) * 2, yOffset);
+            zoomInBtn.Size = new Size(zoomButtonWidth, halfHeight);
+            zoomInBtn.Text = "+";
+            zoomInBtn.Click += ScalingZoomIn_Click;
+            dropdownPaneContent.Controls.Add(zoomInBtn);
+
+            yOffset += halfHeight + 4;
+
+            // Second row: 50% | 75% | 100% | 150% | 200% preset buttons (half-height, 5 columns)
+            int presetButtonWidth = (scalingRowWidth - 8) / 5; // 5 columns with small gaps
+
+            scalingPresetButtons.Clear();
+            int[] presetValues = { 50, 75, 100, 150, 200 };
+            for (int i = 0; i < presetValues.Length; i++)
+            {
+                int presetValue = presetValues[i];
+                Button presetBtn = new Button();
+                presetBtn.FlatStyle = FlatStyle.Flat;
+                presetBtn.FlatAppearance.BorderSize = 1;
+                presetBtn.FlatAppearance.BorderColor = (currentScalingPercent == presetValue) ? selectedBorderColor : borderColor;
+                presetBtn.Font = new Font("Segoe UI", 8F);
+                presetBtn.ForeColor = paneTextColor;
+                presetBtn.BackColor = (currentScalingPercent == presetValue) ? selectedColor : paneBgColor;
+                presetBtn.FlatAppearance.MouseOverBackColor = paneHoverColor;
+                presetBtn.Location = new Point(sidePadding + i * (presetButtonWidth + 2), yOffset);
+                presetBtn.Size = new Size(presetButtonWidth, halfHeight);
+                presetBtn.Text = presetValue + "%";
+                presetBtn.Tag = presetValue;
+                presetBtn.Click += ScalingPreset_Click;
+                dropdownPaneContent.Controls.Add(presetBtn);
+                scalingPresetButtons.Add(presetBtn);
+            }
+
+            yOffset += halfHeight + 4;
 
             // Calculate pane size
             int contentHeight = yOffset;
@@ -1285,6 +1623,124 @@ namespace MeshCentralRouter
 
             // Save to registry
             Settings.SetRegValue("kvmFrameRate", frameRateValue.ToString());
+        }
+
+        private void ScalingZoomOut_Click(object sender, EventArgs e)
+        {
+            // Decrease by 12.5% (minimum 50%), round to nearest 12.5%
+            double newValue = currentScalingPercent - 12.5;
+            if (newValue < 50) newValue = 50;
+            // Round to nearest 12.5% step
+            int rounded = (int)(Math.Round(newValue / 12.5) * 12.5);
+            if (rounded < 50) rounded = 50;
+            ApplyDisplayScaling(rounded);
+        }
+
+        private void ScalingZoomIn_Click(object sender, EventArgs e)
+        {
+            // Increase by 12.5% (maximum 200%), round to nearest 12.5%
+            double newValue = currentScalingPercent + 12.5;
+            if (newValue > 200) newValue = 200;
+            // Round to nearest 12.5% step
+            int rounded = (int)(Math.Round(newValue / 12.5) * 12.5);
+            if (rounded > 200) rounded = 200;
+            ApplyDisplayScaling(rounded);
+        }
+
+        private void ScalingPreset_Click(object sender, EventArgs e)
+        {
+            Button btn = sender as Button;
+            if (btn != null && btn.Tag != null)
+            {
+                int presetValue = (int)btn.Tag;
+                ApplyDisplayScaling(presetValue);
+            }
+        }
+
+        private void ApplyDisplayScaling(int percent)
+        {
+            currentScalingPercent = percent;
+
+            // Scaling percentage is relative to remote desktop resolution
+            // 100% = window client area matches remote desktop pixels exactly
+            // 50% = window is half the remote desktop size
+            // 200% = window is double the remote desktop size
+            double displayMultiplier = percent / 100.0;
+
+            // Calculate the new client area size based on remote desktop dimensions
+            int scaledWidth = (int)(kvmControl.DesktopWidth * displayMultiplier);
+            int scaledHeight = (int)(kvmControl.DesktopHeight * displayMultiplier);
+
+            // Account for title bar and status bar within client area
+            int titleBarHeight = titleBarPanel.Height;
+            int statusBarHeight = mainStatusStrip.Visible ? mainStatusStrip.Height : 0;
+
+            // Calculate window size (client area + window chrome)
+            int chromeWidth = this.Width - this.ClientSize.Width;
+            int chromeHeight = this.Height - this.ClientSize.Height;
+
+            int newWindowWidth = scaledWidth + chromeWidth;
+            int newWindowHeight = scaledHeight + titleBarHeight + statusBarHeight + chromeHeight;
+
+            // Save the pane's screen position before resizing (it must not move)
+            Point paneScreenPos = Point.Empty;
+            bool paneWasVisible = dropdownPane.Visible;
+            if (paneWasVisible)
+            {
+                paneScreenPos = dropdownPane.PointToScreen(Point.Empty);
+            }
+
+            // The pane is centered under the title bar, so calculate where the window's
+            // horizontal center should be (aligned with pane center)
+            int paneCenterScreenX = paneScreenPos.X + dropdownPane.Width / 2;
+
+            // Calculate new window position so its center aligns with the pane
+            int newLeft = paneCenterScreenX - newWindowWidth / 2;
+            // Keep the top edge relative to the pane position (pane is below title bar)
+            int newTop = paneScreenPos.Y - titleBarHeight - chromeHeight / 2;
+
+            this.SetBounds(newLeft, newTop, newWindowWidth, newWindowHeight);
+
+            // Restore the pane to its exact screen position
+            if (paneWasVisible)
+            {
+                Point newClientPos = this.PointToClient(paneScreenPos);
+                dropdownPane.Location = newClientPos;
+            }
+
+            // Enable ZoomToFit so the remote desktop scales to fit the new window size
+            resizeKvmControl.ZoomToFit = true;
+            resizeKvmControl.CenterKvmControl(true);
+
+            // Update the label if it exists
+            if (scalingLevelLabel != null)
+            {
+                scalingLevelLabel.Text = currentScalingPercent + "%";
+            }
+
+            // Update preset button states in place (no panel refresh needed)
+            if (dropdownPane.Visible && dropdownPaneLabel.Text == "Display")
+            {
+                ThemeManager theme = ThemeManager.Instance;
+                Color selectedColor = theme.IsDarkMode ? Color.FromArgb(70, 130, 180) : Color.FromArgb(200, 220, 240);
+                Color paneBgColor = theme.IsDarkMode ? Color.FromArgb(45, 45, 45) : Color.FromArgb(250, 250, 250);
+                Color borderColor = theme.IsDarkMode ? Color.FromArgb(80, 80, 80) : Color.FromArgb(200, 200, 200);
+                Color selectedBorderColor = theme.IsDarkMode ? Color.FromArgb(100, 149, 237) : Color.FromArgb(70, 130, 180);
+
+                foreach (Button btn in scalingPresetButtons)
+                {
+                    if (btn.Tag != null)
+                    {
+                        int presetValue = (int)btn.Tag;
+                        bool isSelected = (currentScalingPercent == presetValue);
+                        btn.BackColor = isSelected ? selectedColor : paneBgColor;
+                        btn.FlatAppearance.BorderColor = isSelected ? selectedBorderColor : borderColor;
+                    }
+                }
+            }
+
+            // Save to registry
+            Settings.SetRegValue("kvmDisplayScaling", currentScalingPercent.ToString());
         }
 
         private void gearButton_Click(object sender, EventArgs e)

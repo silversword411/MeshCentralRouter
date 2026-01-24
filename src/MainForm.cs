@@ -78,6 +78,8 @@ namespace MeshCentralRouter
         // Delete saved server button
         private Button deleteServerButton = null;
         private Button clearSearchButton = null;
+        private string searchPlaceholderText = null;
+        private Label searchPlaceholderLabel = null;
 
         public delegate void ClipboardChangedHandler();
         public event ClipboardChangedHandler ClipboardChanged;
@@ -550,8 +552,17 @@ namespace MeshCentralRouter
             
             setPanel(1);
             updatePanel1(null, null);
-            SendMessage(searchTextBox.Handle, EM_SETCUEBANNER, 0, Translate.T(Properties.Resources.SearchPlaceHolder));
+            searchPlaceholderText = Translate.T(Properties.Resources.SearchPlaceHolder);
+            SendMessage(searchTextBox.Handle, EM_SETCUEBANNER, 0, searchPlaceholderText);
+            SetupSearchPlaceholderLabel();
             AddSearchClearButton();
+
+            // Apply search textbox theme colors (UpdateTheme was called before these controls were fully set up)
+            if (ThemeManager.Instance.IsDarkMode)
+            {
+                searchTextBox.BackColor = Color.FromArgb(50, 50, 50);
+                searchTextBox.ForeColor = Color.FromArgb(240, 240, 240);
+            }
 
             // Start the multicast scanner
             //scanner = new MeshDiscovery();
@@ -806,7 +817,8 @@ namespace MeshCentralRouter
                 clearSearchButton.FlatAppearance.BorderSize = 0;
                 clearSearchButton.Cursor = Cursors.Hand;
                 clearSearchButton.TabStop = false;
-                clearSearchButton.BackColor = SystemColors.Window;
+                // Set BackColor based on current theme
+                clearSearchButton.BackColor = ThemeManager.Instance.IsDarkMode ? Color.FromArgb(50, 50, 50) : SystemColors.Window;
                 clearSearchButton.Click += ClearSearchButton_Click;
                 clearSearchButton.Paint += ClearSearchButton_Paint;
                 
@@ -865,7 +877,8 @@ namespace MeshCentralRouter
                 sf.LineAlignment = StringAlignment.Center;
                 // Draw 'x' slightly higher if needed, but Center/Center usually works best for most fonts.
                 // If it still looks too low, we can adjust the rectangle.
-                e.Graphics.DrawString("✕", btn.Font, Brushes.Black, btn.ClientRectangle, sf);
+                Brush brush = ThemeManager.Instance.IsDarkMode ? Brushes.White : Brushes.Black;
+                e.Graphics.DrawString("✕", btn.Font, brush, btn.ClientRectangle, sf);
             }
         }
 
@@ -874,6 +887,57 @@ namespace MeshCentralRouter
             if (clearSearchButton != null)
             {
                 clearSearchButton.Visible = !string.IsNullOrEmpty(searchTextBox.Text);
+            }
+        }
+
+        private void SetupSearchPlaceholderLabel()
+        {
+            searchPlaceholderLabel = new Label();
+            searchPlaceholderLabel.Text = searchPlaceholderText;
+            searchPlaceholderLabel.Font = searchTextBox.Font;
+            searchPlaceholderLabel.ForeColor = Color.FromArgb(180, 180, 180);
+            searchPlaceholderLabel.AutoSize = true;
+            searchPlaceholderLabel.Cursor = Cursors.IBeam;
+            searchPlaceholderLabel.Click += (s, e) => searchTextBox.Focus();
+
+            searchTextBox.Parent.Controls.Add(searchPlaceholderLabel);
+            searchPlaceholderLabel.BringToFront();
+
+            // Position the label inside the textbox
+            UpdateSearchPlaceholderPosition();
+            searchTextBox.Resize += (s, e) => UpdateSearchPlaceholderPosition();
+            searchTextBox.Move += (s, e) => UpdateSearchPlaceholderPosition();
+            searchTextBox.TextChanged += (s, e) => UpdateSearchPlaceholderVisibility();
+            searchTextBox.Enter += (s, e) => UpdateSearchPlaceholderVisibility();
+            searchTextBox.Leave += (s, e) => UpdateSearchPlaceholderVisibility();
+
+            // Set initial state based on current theme
+            if (ThemeManager.Instance.IsDarkMode)
+            {
+                searchPlaceholderLabel.BackColor = searchTextBox.BackColor;
+                // Clear Windows cue banner since we use our own label in dark mode
+                SendMessage(searchTextBox.Handle, EM_SETCUEBANNER, 0, "");
+            }
+            UpdateSearchPlaceholderVisibility();
+        }
+
+        private void UpdateSearchPlaceholderPosition()
+        {
+            if (searchPlaceholderLabel != null && searchTextBox != null)
+            {
+                searchPlaceholderLabel.Location = new Point(searchTextBox.Left + 2, searchTextBox.Top + (searchTextBox.Height - searchPlaceholderLabel.Height) / 2);
+            }
+        }
+
+        private void UpdateSearchPlaceholderVisibility()
+        {
+            if (searchPlaceholderLabel != null)
+            {
+                // Show custom placeholder only in dark mode when textbox is empty and not focused
+                bool showPlaceholder = ThemeManager.Instance.IsDarkMode &&
+                                       string.IsNullOrEmpty(searchTextBox.Text) &&
+                                       !searchTextBox.Focused;
+                searchPlaceholderLabel.Visible = showPlaceholder;
             }
         }
 
@@ -3055,6 +3119,9 @@ namespace MeshCentralRouter
             minimizeButton.BackColor = titleBarColor;
             minimizeButton.ForeColor = titleBarTextColor;
             minimizeButton.FlatAppearance.MouseOverBackColor = theme.GetButtonHoverColor();
+            maximizeButton.BackColor = titleBarColor;
+            maximizeButton.ForeColor = titleBarTextColor;
+            maximizeButton.FlatAppearance.MouseOverBackColor = theme.GetButtonHoverColor();
             closeButton.BackColor = titleBarColor;
             closeButton.ForeColor = titleBarTextColor;
             closeButton.FlatAppearance.MouseOverBackColor = Color.FromArgb(232, 17, 35);
@@ -3077,23 +3144,67 @@ namespace MeshCentralRouter
             
             // Apply theme to mainPanel controls (panel1, panel2, panel3, panel4)
             ApplyThemeToControl(mainPanel, bgColor, fgColor);
-            
+
+            // Explicitly style login button (nextButton1) for dark mode to prevent text turning black on click
+            if (theme.IsDarkMode)
+            {
+                nextButton1.FlatStyle = FlatStyle.Flat;
+                nextButton1.ForeColor = fgColor;
+                nextButton1.BackColor = bgColor;
+                nextButton1.FlatAppearance.BorderColor = Color.FromArgb(100, 100, 100);
+                nextButton1.FlatAppearance.MouseOverBackColor = theme.GetButtonHoverColor();
+                nextButton1.FlatAppearance.MouseDownBackColor = Color.FromArgb(80, 80, 80);
+            }
+            else
+            {
+                nextButton1.FlatStyle = FlatStyle.Standard;
+                nextButton1.ForeColor = fgColor;
+                nextButton1.BackColor = bgColor;
+            }
+
             // Explicitly apply theme to panel4 (devices panel) and all its contents
             panel4.BackColor = bgColor;
             panel4.ForeColor = fgColor;
             ApplyThemeToControl(panel4, bgColor, fgColor);
 
-            // Special handling for search text box - make it lighter in dark mode for better placeholder visibility
+            // Special handling for search text box and clear button
             if (theme.IsDarkMode)
             {
                 searchTextBox.BackColor = Color.FromArgb(50, 50, 50);
-                searchTextBox.ForeColor = Color.FromArgb(200, 200, 200);
+                searchTextBox.ForeColor = Color.FromArgb(240, 240, 240);
+                // Clear the Windows cue banner in dark mode - we use our own label
+                SendMessage(searchTextBox.Handle, EM_SETCUEBANNER, 0, "");
+                if (searchPlaceholderLabel != null)
+                {
+                    searchPlaceholderLabel.ForeColor = Color.FromArgb(180, 180, 180);
+                    searchPlaceholderLabel.BackColor = searchTextBox.BackColor;
+                }
+                if (clearSearchButton != null)
+                {
+                    clearSearchButton.BackColor = searchTextBox.BackColor;
+                    clearSearchButton.Invalidate(); // Force repaint to update X color
+                }
             }
             else
             {
                 searchTextBox.BackColor = Color.White;
                 searchTextBox.ForeColor = Color.Black;
+                // Restore the Windows cue banner in light mode
+                if (searchPlaceholderText != null)
+                {
+                    SendMessage(searchTextBox.Handle, EM_SETCUEBANNER, 0, searchPlaceholderText);
+                }
+                if (searchPlaceholderLabel != null)
+                {
+                    searchPlaceholderLabel.Visible = false;
+                }
+                if (clearSearchButton != null)
+                {
+                    clearSearchButton.BackColor = Color.White;
+                    clearSearchButton.Invalidate(); // Force repaint to update X color
+                }
             }
+            UpdateSearchPlaceholderVisibility();
 
             // Special handling for license link - use semi-transparent background for visibility in dark mode
             if (theme.IsDarkMode)
@@ -3153,7 +3264,22 @@ namespace MeshCentralRouter
                 tab.ForeColor = fgColor;
                 ApplyThemeToControl(tab, bgColor, fgColor);
             }
-            
+
+            // Update devices tab control and panel
+            devicesTabControl.BackColor = bgColor;
+            devicesTabControl.ForeColor = fgColor;
+            foreach (TabPage tab in devicesTabControl.TabPages)
+            {
+                tab.BackColor = bgColor;
+                tab.ForeColor = fgColor;
+            }
+            devicesPanel.BackColor = bgColor;
+            devicesPanel.ForeColor = fgColor;
+            devicesListView.BackColor = bgColor;
+            devicesListView.ForeColor = fgColor;
+            // Hide column headers in dark mode (they can't be themed and appear white)
+            devicesListView.HeaderStyle = theme.IsDarkMode ? ColumnHeaderStyle.None : ColumnHeaderStyle.Nonclickable;
+
             // Update context menus
             mainContextMenuStrip.BackColor = bgColor;
             mainContextMenuStrip.ForeColor = fgColor;
@@ -3190,8 +3316,22 @@ namespace MeshCentralRouter
                 }
                 else if (ctrl is Button)
                 {
-                    ctrl.ForeColor = fgColor;
-                    ctrl.BackColor = bgColor;
+                    Button btn = (Button)ctrl;
+                    btn.ForeColor = fgColor;
+                    btn.BackColor = bgColor;
+                    // Use FlatStyle in dark mode to ensure colors are respected on click
+                    ThemeManager theme = ThemeManager.Instance;
+                    if (theme.IsDarkMode)
+                    {
+                        btn.FlatStyle = FlatStyle.Flat;
+                        btn.FlatAppearance.BorderColor = Color.FromArgb(100, 100, 100);
+                        btn.FlatAppearance.MouseOverBackColor = theme.GetButtonHoverColor();
+                        btn.FlatAppearance.MouseDownBackColor = Color.FromArgb(80, 80, 80);
+                    }
+                    else
+                    {
+                        btn.FlatStyle = FlatStyle.Standard;
+                    }
                 }
                 else if (ctrl is LinkLabel)
                 {
@@ -3232,8 +3372,22 @@ namespace MeshCentralRouter
                 }
                 else if (ctrl is Button)
                 {
-                    ctrl.ForeColor = textColor;
-                    ctrl.BackColor = bgColor;
+                    Button btn = (Button)ctrl;
+                    btn.ForeColor = textColor;
+                    btn.BackColor = bgColor;
+                    // Use FlatStyle in dark mode to ensure colors are respected on click
+                    ThemeManager theme = ThemeManager.Instance;
+                    if (theme.IsDarkMode)
+                    {
+                        btn.FlatStyle = FlatStyle.Flat;
+                        btn.FlatAppearance.BorderColor = Color.FromArgb(100, 100, 100);
+                        btn.FlatAppearance.MouseOverBackColor = theme.GetButtonHoverColor();
+                        btn.FlatAppearance.MouseDownBackColor = Color.FromArgb(80, 80, 80);
+                    }
+                    else
+                    {
+                        btn.FlatStyle = FlatStyle.Standard;
+                    }
                 }
                 else if (ctrl is LinkLabel)
                 {

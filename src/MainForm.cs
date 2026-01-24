@@ -81,7 +81,7 @@ namespace MeshCentralRouter
         public delegate void ClipboardChangedHandler();
         public event ClipboardChangedHandler ClipboardChanged;
 
-        private const int RESIZE_BORDER = 6;
+        private const int RESIZE_BORDER = 15;
 
         protected override void WndProc(ref System.Windows.Forms.Message m)
         {
@@ -643,19 +643,21 @@ namespace MeshCentralRouter
                 deleteServerButton.TabStop = false;
                 deleteServerButton.Click += DeleteServerButton_Click;
 
+                // Anchor button to top-right like the combo box
+                deleteServerButton.Anchor = AnchorStyles.Top | AnchorStyles.Right;
+
                 // Add tooltip
                 ToolTip toolTip = new ToolTip();
                 toolTip.SetToolTip(deleteServerButton, Translate.T("Remove Saved Server"));
+
+                // Shrink the combo box to make room for the button
+                serverNameComboBox.Width -= 28;
 
                 // Add to the same parent as serverNameComboBox
                 serverNameComboBox.Parent.Controls.Add(deleteServerButton);
 
                 // Position it to the right of the combo box
                 UpdateDeleteButtonPosition();
-
-                // Hook up resize event to reposition button
-                serverNameComboBox.Resize += (s, e) => UpdateDeleteButtonPosition();
-                serverNameComboBox.LocationChanged += (s, e) => UpdateDeleteButtonPosition();
             }
 
             // Update button visibility

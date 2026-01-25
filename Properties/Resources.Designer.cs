@@ -1242,6 +1242,16 @@ namespace MeshCentralRouter.Properties {
         /// <summary>
         ///   Looks up a localized resource of type System.Drawing.Bitmap.
         /// </summary>
+        internal static System.Drawing.Bitmap Wrench20 {
+            get {
+                object obj = ResourceManager.GetObject("Wrench20", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized resource of type System.Drawing.Bitmap.
+        /// </summary>
         internal static System.Drawing.Bitmap ZoomToFit {
             get {
                 object obj = ResourceManager.GetObject("ZoomToFit", resourceCulture);

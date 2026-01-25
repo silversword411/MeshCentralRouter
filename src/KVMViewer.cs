@@ -146,6 +146,7 @@ namespace MeshCentralRouter
             mainToolTip.SetToolTip(statsButton, Translate.T(Properties.Resources.DisplayConnectionStatistics, lang));
             mainToolTip.SetToolTip(infoButton, Translate.T(Properties.Resources.DisplayConnectionStatistics, lang));
             mainToolTip.SetToolTip(displayButton, Translate.T(Properties.Resources.DisplaySettings, lang));
+            mainToolTip.SetToolTip(otherButton, "Other");
 
             // Load remote desktop settings
             int CompressionLevel = 60;
@@ -644,14 +645,17 @@ namespace MeshCentralRouter
 
         private void CenterTitleBarControls()
         {
-            // Center the display, files, chat, gear and info buttons in the title bar (with small spacing between them)
+            // Center the display, other, files, chat, gear and info buttons in the title bar (with small spacing between them)
             int spacing = 4;
-            int totalWidth = displayButton.Width + spacing + openRemoteFilesButton.Width + spacing + chatButton.Width + spacing + gearButton.Width + spacing + infoButton.Width;
+            int totalWidth = displayButton.Width + spacing + otherButton.Width + spacing + openRemoteFilesButton.Width + spacing + chatButton.Width + spacing + gearButton.Width + spacing + infoButton.Width;
             int startX = (titleBarPanel.Width - totalWidth) / 2;
             int currentX = startX;
 
             displayButton.Location = new Point(currentX, displayButton.Location.Y);
             currentX += displayButton.Width + spacing;
+
+            otherButton.Location = new Point(currentX, otherButton.Location.Y);
+            currentX += otherButton.Width + spacing;
 
             openRemoteFilesButton.Location = new Point(currentX, openRemoteFilesButton.Location.Y);
             currentX += openRemoteFilesButton.Width + spacing;
@@ -1031,6 +1035,81 @@ namespace MeshCentralRouter
             }
         }
 
+        private void otherButton_Click(object sender, EventArgs e)
+        {
+            // If clicking the same pane that's already open, close it
+            if (dropdownPane.Visible && dropdownPaneLabel.Text == "Other")
+            {
+                HideDropdownPane();
+                return;
+            }
+
+            // Set the title
+            dropdownPaneLabel.Text = "Other";
+
+            // Clear existing content
+            dropdownPaneContent.Controls.Clear();
+
+            ThemeManager theme = ThemeManager.Instance;
+            Color paneBgColor = theme.IsDarkMode ? Color.FromArgb(45, 45, 45) : Color.FromArgb(250, 250, 250);
+            Color paneTextColor = theme.IsDarkMode ? Color.White : Color.Black;
+            Color paneHoverColor = theme.IsDarkMode ? Color.FromArgb(60, 60, 60) : Color.FromArgb(230, 230, 230);
+            Color borderColor = theme.IsDarkMode ? Color.FromArgb(80, 80, 80) : Color.FromArgb(200, 200, 200);
+
+            int yOffset = 4;
+            int sectionHeaderHeight = 36;
+            int itemHeight = sectionHeaderHeight * 2;
+            int paneWidth = 365;
+            int sidePadding = 8;
+
+            // === Actions Section ===
+            Label actionsHeader = new Label();
+            actionsHeader.Text = "Actions";
+            actionsHeader.Font = new Font("Segoe UI", 10F, FontStyle.Bold);
+            actionsHeader.ForeColor = paneTextColor;
+            actionsHeader.Location = new Point(sidePadding, yOffset);
+            actionsHeader.Size = new Size(paneWidth - (sidePadding * 2), sectionHeaderHeight);
+            dropdownPaneContent.Controls.Add(actionsHeader);
+            yOffset += sectionHeaderHeight;
+
+            // CAD (Ctrl+Alt+Del) button - styled like a single ToggleButton (one unit wide, same height as frame rate buttons)
+            int buttonSpacing = 4;
+            int buttonUnitWidth = (paneWidth - (sidePadding * 2) - (buttonSpacing * 3)) / 4;
+            int toggleButtonHeight = sectionHeaderHeight * 2; // Match ToggleButton height in display pane
+            Button cadPaneButton = new Button();
+            cadPaneButton.FlatStyle = FlatStyle.Flat;
+            cadPaneButton.FlatAppearance.BorderSize = 1;
+            cadPaneButton.FlatAppearance.BorderColor = borderColor;
+            cadPaneButton.FlatAppearance.MouseOverBackColor = paneHoverColor;
+            cadPaneButton.BackColor = paneBgColor;
+            cadPaneButton.ForeColor = paneTextColor;
+            cadPaneButton.Font = new Font("Segoe UI", 8F);
+            cadPaneButton.Text = "Send\nCtrl-Alt-Del";
+            cadPaneButton.TextAlign = ContentAlignment.MiddleCenter;
+            cadPaneButton.Cursor = Cursors.Hand;
+            cadPaneButton.Location = new Point(sidePadding, yOffset);
+            cadPaneButton.Size = new Size(buttonUnitWidth, toggleButtonHeight);
+            cadPaneButton.Click += (s, ev) => {
+                sendCtrlAltDelToolStripMenuItem_Click(s, ev);
+                HideDropdownPane();
+            };
+            dropdownPaneContent.Controls.Add(cadPaneButton);
+            yOffset += toggleButtonHeight + 8;
+
+            // Size and show the dropdown pane
+            int paneHeight = yOffset + 36;
+            dropdownPaneContent.Size = new Size(paneWidth - 2, yOffset);
+            dropdownPane.Size = new Size(paneWidth, paneHeight);
+            dropdownPane.BackColor = paneBgColor;
+            dropdownPaneLabel.ForeColor = paneTextColor;
+
+            // Center the dropdown pane
+            int paneCenterX = (this.Width - dropdownPane.Width) / 2;
+            dropdownPane.Location = new Point(paneCenterX, titleBarPanel.Height);
+            dropdownPane.Visible = true;
+            dropdownPane.BringToFront();
+        }
+
         private void chatButton_Click(object sender, EventArgs e)
         {
             if (kvmControl == null) return;
@@ -1296,9 +1375,9 @@ namespace MeshCentralRouter
             Color labelColor = theme.IsDarkMode ? Color.FromArgb(180, 180, 180) : Color.FromArgb(100, 100, 100);
 
             int yOffset = 4;
-            int rowHeight = 20;
-            int paneWidth = 220;
-            int labelWidth = 90;
+            int rowHeight = 28;
+            int paneWidth = 365;
+            int labelWidth = 130;
             int valueWidth = paneWidth - labelWidth - 16;
 
             // Helper function to create a stats row
@@ -1306,14 +1385,14 @@ namespace MeshCentralRouter
             {
                 Label lbl = new Label();
                 lbl.Text = labelText;
-                lbl.Font = new Font("Segoe UI", 8.5F);
+                lbl.Font = new Font("Segoe UI", 9.5F);
                 lbl.ForeColor = labelColor;
                 lbl.Location = new Point(8, yOffset);
                 lbl.Size = new Size(labelWidth, rowHeight);
                 lbl.TextAlign = ContentAlignment.MiddleLeft;
                 dropdownPaneContent.Controls.Add(lbl);
 
-                valueLabel.Font = new Font("Segoe UI", 8.5F);
+                valueLabel.Font = new Font("Segoe UI", 9.5F);
                 valueLabel.ForeColor = paneTextColor;
                 valueLabel.Location = new Point(labelWidth + 8, yOffset);
                 valueLabel.Size = new Size(valueWidth, rowHeight);
@@ -1326,7 +1405,7 @@ namespace MeshCentralRouter
             // Data Transfer section header
             Label dataHeader = new Label();
             dataHeader.Text = "Data Transfer";
-            dataHeader.Font = new Font("Segoe UI", 8.5F, FontStyle.Bold);
+            dataHeader.Font = new Font("Segoe UI", 10F, FontStyle.Bold);
             dataHeader.ForeColor = paneTextColor;
             dataHeader.Location = new Point(8, yOffset);
             dataHeader.Size = new Size(paneWidth - 16, rowHeight);
@@ -1349,7 +1428,7 @@ namespace MeshCentralRouter
             // Compression section header
             Label compHeader = new Label();
             compHeader.Text = "Compression";
-            compHeader.Font = new Font("Segoe UI", 8.5F, FontStyle.Bold);
+            compHeader.Font = new Font("Segoe UI", 10F, FontStyle.Bold);
             compHeader.ForeColor = paneTextColor;
             compHeader.Location = new Point(8, yOffset);
             compHeader.Size = new Size(paneWidth - 16, rowHeight);
@@ -1473,9 +1552,9 @@ namespace MeshCentralRouter
             Color selectedBorderColor = theme.IsDarkMode ? Color.FromArgb(100, 149, 237) : Color.FromArgb(70, 130, 180);
 
             int yOffset = 4;
-            int sectionHeaderHeight = 22;
+            int sectionHeaderHeight = 36;
             int itemHeight = sectionHeaderHeight * 2; // Button height is 2x the header height
-            int paneWidth = 280;
+            int paneWidth = 365;
             int sidePadding = 8;
 
             // Select Displays section - only show if we have display info
@@ -1484,7 +1563,7 @@ namespace MeshCentralRouter
                 // Select Displays section header
                 Label selectDisplaysHeader = new Label();
                 selectDisplaysHeader.Text = "Select Displays";
-                selectDisplaysHeader.Font = new Font("Segoe UI", 8.5F, FontStyle.Bold);
+                selectDisplaysHeader.Font = new Font("Segoe UI", 10F, FontStyle.Bold);
                 selectDisplaysHeader.ForeColor = paneTextColor;
                 selectDisplaysHeader.Location = new Point(sidePadding, yOffset);
                 selectDisplaysHeader.Size = new Size(paneWidth - (sidePadding * 2), sectionHeaderHeight);
@@ -1576,7 +1655,7 @@ namespace MeshCentralRouter
             // Frame Rate section header
             Label frameRateHeader = new Label();
             frameRateHeader.Text = Translate.T(Properties.Resources.FrameRate, lang);
-            frameRateHeader.Font = new Font("Segoe UI", 8.5F, FontStyle.Bold);
+            frameRateHeader.Font = new Font("Segoe UI", 10F, FontStyle.Bold);
             frameRateHeader.ForeColor = paneTextColor;
             frameRateHeader.Location = new Point(sidePadding, yOffset);
             frameRateHeader.Size = new Size(paneWidth - (sidePadding * 2), sectionHeaderHeight);
@@ -1610,7 +1689,7 @@ namespace MeshCentralRouter
             // Scaling section header
             Label scalingHeader = new Label();
             scalingHeader.Text = "Scaling";
-            scalingHeader.Font = new Font("Segoe UI", 8.5F, FontStyle.Bold);
+            scalingHeader.Font = new Font("Segoe UI", 10F, FontStyle.Bold);
             scalingHeader.ForeColor = paneTextColor;
             scalingHeader.Location = new Point(sidePadding, yOffset);
             scalingHeader.Size = new Size(paneWidth - (sidePadding * 2), sectionHeaderHeight);
@@ -1890,15 +1969,15 @@ namespace MeshCentralRouter
             Color borderColor = theme.IsDarkMode ? Color.FromArgb(80, 80, 80) : Color.FromArgb(200, 200, 200);
 
             int yOffset = 4;
-            int sectionHeaderHeight = 22;
-            int itemHeight = 28;
-            int paneWidth = 220;
+            int sectionHeaderHeight = 36;
+            int itemHeight = sectionHeaderHeight * 2;
+            int paneWidth = 365;
             int sidePadding = 8;
 
             // === Actions Section ===
             Label actionsHeader = new Label();
             actionsHeader.Text = "Actions";
-            actionsHeader.Font = new Font("Segoe UI", 8.5F, FontStyle.Bold);
+            actionsHeader.Font = new Font("Segoe UI", 10F, FontStyle.Bold);
             actionsHeader.ForeColor = paneTextColor;
             actionsHeader.Location = new Point(sidePadding, yOffset);
             actionsHeader.Size = new Size(paneWidth - (sidePadding * 2), sectionHeaderHeight);
@@ -1910,7 +1989,7 @@ namespace MeshCentralRouter
             settingsBtn.FlatStyle = FlatStyle.Flat;
             settingsBtn.FlatAppearance.BorderSize = 1;
             settingsBtn.FlatAppearance.BorderColor = borderColor;
-            settingsBtn.Font = new Font("Segoe UI", 8.5F);
+            settingsBtn.Font = new Font("Segoe UI", 9.5F);
             settingsBtn.ForeColor = paneTextColor;
             settingsBtn.BackColor = paneBgColor;
             settingsBtn.FlatAppearance.MouseOverBackColor = paneHoverColor;
@@ -1927,30 +2006,38 @@ namespace MeshCentralRouter
             // === View Section ===
             Label viewHeader = new Label();
             viewHeader.Text = "View";
-            viewHeader.Font = new Font("Segoe UI", 8.5F, FontStyle.Bold);
+            viewHeader.Font = new Font("Segoe UI", 10F, FontStyle.Bold);
             viewHeader.ForeColor = paneTextColor;
             viewHeader.Location = new Point(sidePadding, yOffset);
             viewHeader.Size = new Size(paneWidth - (sidePadding * 2), sectionHeaderHeight);
             dropdownPaneContent.Controls.Add(viewHeader);
             yOffset += sectionHeaderHeight;
 
-            // Status Bar toggle row
-            Panel statusBarRow = new Panel();
+            // Status Bar toggle - 1 unit wide, toggle above text, bordered like Fast button
+            int statusButtonSpacing = 4;
+            int statusButtonUnitWidth = (paneWidth - (sidePadding * 2) - (statusButtonSpacing * 3)) / 4;
+            Button statusBarRow = new Button();
+            statusBarRow.FlatStyle = FlatStyle.Flat;
+            statusBarRow.FlatAppearance.BorderSize = 1;
+            statusBarRow.FlatAppearance.BorderColor = borderColor;
+            statusBarRow.FlatAppearance.MouseOverBackColor = paneHoverColor;
             statusBarRow.Location = new Point(sidePadding, yOffset);
-            statusBarRow.Size = new Size(paneWidth - (sidePadding * 2), itemHeight);
+            statusBarRow.Size = new Size(statusButtonUnitWidth, itemHeight);
             statusBarRow.BackColor = paneBgColor;
+            statusBarRow.Click += (s, ev) => { paneStatusBarToggleSwitch.Checked = !paneStatusBarToggleSwitch.Checked; };
+
+            // Toggle switch centered at top
+            paneStatusBarToggleSwitch.Size = new Size(32, 16);
+            paneStatusBarToggleSwitch.Location = new Point((statusButtonUnitWidth - 32) / 2, 6);
 
             Label statusBarLabel = new Label();
             statusBarLabel.Text = "Status Bar";
-            statusBarLabel.Font = new Font("Segoe UI", 8.5F);
+            statusBarLabel.Font = new Font("Segoe UI", 8F);
             statusBarLabel.ForeColor = paneTextColor;
-            statusBarLabel.Location = new Point(0, 6);
-            statusBarLabel.AutoSize = true;
+            statusBarLabel.Size = new Size(statusButtonUnitWidth, 20);
+            statusBarLabel.TextAlign = ContentAlignment.MiddleCenter;
+            statusBarLabel.Location = new Point(0, 6 + 16 + 4);
             statusBarRow.Controls.Add(statusBarLabel);
-
-            // Position the toggle switch on the right side of the row
-            paneStatusBarToggleSwitch.Location = new Point(statusBarRow.Width - 44, 4);
-            paneStatusBarToggleSwitch.Size = new Size(40, 20);
             // Update toggle colors based on theme
             if (theme.IsDarkMode)
             {
@@ -2051,10 +2138,10 @@ namespace MeshCentralRouter
             Color selectedColor = theme.IsDarkMode ? Color.FromArgb(70, 130, 180) : Color.FromArgb(200, 220, 240);
 
             int yOffset = 0;
-            int itemHeight = 28;
-            int sectionHeaderHeight = 22;
+            int sectionHeaderHeight = 36;
+            int itemHeight = sectionHeaderHeight * 2;
             int sectionSpacing = 8;
-            int paneWidth = 180;
+            int paneWidth = 365;
 
             foreach (var section in sections)
             {
@@ -2066,7 +2153,7 @@ namespace MeshCentralRouter
 
                 Label sectionLabel = new Label();
                 sectionLabel.Text = section.Title;
-                sectionLabel.Font = new Font("Segoe UI", 8.5F, FontStyle.Regular);
+                sectionLabel.Font = new Font("Segoe UI", 10F, FontStyle.Bold);
                 sectionLabel.ForeColor = sectionHeaderColor;
                 sectionLabel.Location = new Point(8, 4);
                 sectionLabel.AutoSize = true;
@@ -2099,7 +2186,7 @@ namespace MeshCentralRouter
                     itemButton.FlatStyle = FlatStyle.Flat;
                     itemButton.FlatAppearance.BorderSize = item.IsSelected ? 1 : 0;
                     itemButton.FlatAppearance.BorderColor = theme.IsDarkMode ? Color.FromArgb(100, 149, 237) : Color.FromArgb(70, 130, 180);
-                    itemButton.Font = new Font("Segoe UI", 8.5F);
+                    itemButton.Font = new Font("Segoe UI", 9.5F);
                     itemButton.ForeColor = paneTextColor;
                     itemButton.BackColor = item.IsSelected ? selectedColor : paneBgColor;
                     itemButton.FlatAppearance.MouseOverBackColor = paneHoverColor;
@@ -2190,13 +2277,13 @@ namespace MeshCentralRouter
             Color paneHoverColor = theme.IsDarkMode ? Color.FromArgb(60, 60, 60) : Color.FromArgb(230, 230, 230);
             Color selectedColor = theme.IsDarkMode ? Color.FromArgb(70, 130, 180) : Color.FromArgb(200, 220, 240);
 
-            int itemHeight = 28;
-            int sectionHeaderHeight = 22;
+            int sectionHeaderHeight = 36;
+            int itemHeight = sectionHeaderHeight * 2;
             int sectionSpacing = 8;
             int groupSpacing = 8;
 
             // Calculate pane dimensions based on layout
-            int paneWidth = Math.Max(180, layout.ColumnsPerPane * 100 + (layout.ColumnsPerPane - 1) * groupSpacing + 8);
+            int paneWidth = Math.Max(365, layout.ColumnsPerPane * 130 + (layout.ColumnsPerPane - 1) * groupSpacing + 8);
             int groupWidth = layout.CalculateGroupWidth(paneWidth);
 
             // Track row heights for proper grid placement
@@ -2232,7 +2319,7 @@ namespace MeshCentralRouter
 
                         Label sectionLabel = new Label();
                         sectionLabel.Text = section.Title;
-                        sectionLabel.Font = new Font("Segoe UI", 8.5F, FontStyle.Regular);
+                        sectionLabel.Font = new Font("Segoe UI", 10F, FontStyle.Bold);
                         sectionLabel.ForeColor = sectionHeaderColor;
                         sectionLabel.Location = new Point(4, 4);
                         sectionLabel.AutoSize = true;
@@ -2265,10 +2352,10 @@ namespace MeshCentralRouter
                         Button itemButton = new Button();
                         itemButton.FlatStyle = FlatStyle.Flat;
                         itemButton.FlatAppearance.BorderSize = 1; // Always show border for bounding box
-                        itemButton.FlatAppearance.BorderColor = item.IsSelected ? 
+                        itemButton.FlatAppearance.BorderColor = item.IsSelected ?
                             (theme.IsDarkMode ? Color.FromArgb(100, 149, 237) : Color.FromArgb(70, 130, 180)) :
                             (theme.IsDarkMode ? Color.FromArgb(80, 80, 80) : Color.FromArgb(200, 200, 200));
-                        itemButton.Font = new Font("Segoe UI", 8.5F);
+                        itemButton.Font = new Font("Segoe UI", 9.5F);
                         itemButton.ForeColor = paneTextColor;
                         itemButton.BackColor = item.IsSelected ? selectedColor : paneBgColor;
                         itemButton.FlatAppearance.MouseOverBackColor = paneHoverColor;
@@ -2473,10 +2560,6 @@ namespace MeshCentralRouter
             connectButton.FillColor = theme.IsDarkMode ? Color.FromArgb(65, 65, 65) : Color.FromArgb(200, 200, 200);
             connectButton.ForeColor = titleBarTextColor;
 
-            // Update CAD button in title bar (same style as chat)
-            cadButton.FillColor = theme.IsDarkMode ? Color.FromArgb(65, 65, 65) : Color.FromArgb(200, 200, 200);
-            cadButton.ForeColor = titleBarTextColor;
-
             // Update chat separator color
             chatSeparator.BackColor = theme.IsDarkMode ? Color.FromArgb(100, 100, 100) : Color.FromArgb(180, 180, 180);
 
@@ -2497,6 +2580,13 @@ namespace MeshCentralRouter
             displayButton.FlatAppearance.MouseOverBackColor = theme.GetButtonHoverColor();
             displayButton.Image = GetTintedIcon(Properties.Resources.Display20, titleBarTextColor);
             displayButton.Text = "";
+
+            // Update other button in title bar (to the right of display button)
+            otherButton.BackColor = titleBarColor;
+            otherButton.ForeColor = titleBarTextColor;
+            otherButton.FlatAppearance.MouseOverBackColor = theme.GetButtonHoverColor();
+            otherButton.Image = GetTintedIcon(Properties.Resources.Wrench20, titleBarTextColor);
+            otherButton.Text = "";
 
             // Update info button in title bar (to the right of gear button)
             infoButton.BackColor = titleBarColor;

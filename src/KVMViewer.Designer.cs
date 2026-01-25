@@ -23,7 +23,7 @@ namespace MeshCentralRouter
     public class TitleBarWithCenterPanel : System.Windows.Forms.Panel
     {
         private System.Drawing.Color centerColor = System.Drawing.Color.FromArgb(40, 40, 40);
-        private int centerWidth = 200;
+        private int centerWidth = 230;
         private int angleWidth = 20;
 
         public System.Drawing.Color CenterColor
@@ -362,6 +362,7 @@ namespace MeshCentralRouter
             this.minimizeButton = new System.Windows.Forms.Button();
             this.gearButton = new System.Windows.Forms.Button();
             this.displayButton = new System.Windows.Forms.Button();
+            this.otherButton = new System.Windows.Forms.Button();
             this.infoButton = new System.Windows.Forms.Button();
             this.themeButton = new System.Windows.Forms.Button();
             this.paneStatusBarToggleSwitch = new MeshCentralRouter.ToggleSwitch();
@@ -418,7 +419,7 @@ namespace MeshCentralRouter
             this.titleBarPanel.Controls.Add(this.infoButton);
             this.titleBarPanel.Controls.Add(this.gearButton);
             this.titleBarPanel.Controls.Add(this.displayButton);
-            this.titleBarPanel.Controls.Add(this.cadButton);
+            this.titleBarPanel.Controls.Add(this.otherButton);
             this.titleBarPanel.Controls.Add(this.connectButton);
             this.titleBarPanel.Controls.Add(this.titleLabel);
             this.titleBarPanel.Dock = System.Windows.Forms.DockStyle.Top;
@@ -521,6 +522,22 @@ namespace MeshCentralRouter
             this.displayButton.Text = "";
             this.displayButton.UseVisualStyleBackColor = true;
             this.displayButton.Click += new System.EventHandler(this.displayButton_Click);
+            //
+            // otherButton
+            //
+            this.otherButton.Anchor = System.Windows.Forms.AnchorStyles.Top;
+            this.otherButton.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.otherButton.FlatAppearance.BorderSize = 0;
+            this.otherButton.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.otherButton.Location = new System.Drawing.Point(377, 4);
+            this.otherButton.Name = "otherButton";
+            this.otherButton.Size = new System.Drawing.Size(32, 24);
+            this.otherButton.TabIndex = 13;
+            this.otherButton.Image = global::MeshCentralRouter.Properties.Resources.Wrench20;
+            this.otherButton.ImageAlign = System.Drawing.ContentAlignment.MiddleCenter;
+            this.otherButton.Text = "";
+            this.otherButton.UseVisualStyleBackColor = true;
+            this.otherButton.Click += new System.EventHandler(this.otherButton_Click);
             //
             // infoButton
             //
@@ -821,17 +838,18 @@ namespace MeshCentralRouter
             this.zoomButton.UseVisualStyleBackColor = true;
             this.zoomButton.Click += new System.EventHandler(this.zoomButton_Click);
             //
-            // cadButton - moved to titlebar as RoundedButton
+            // cadButton - moved to Other dropdown pane
             //
             this.cadButton.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
             this.cadButton.FlatAppearance.BorderSize = 0;
             this.cadButton.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.cadButton.Location = new System.Drawing.Point(92, 3);
+            this.cadButton.Location = new System.Drawing.Point(0, 0);
             this.cadButton.Name = "cadButton";
             this.cadButton.Size = new System.Drawing.Size(50, 26);
             this.cadButton.TabIndex = 10;
             this.cadButton.TabStop = false;
             this.cadButton.Text = "CAD";
+            this.cadButton.Visible = false;
             this.cadButton.UseVisualStyleBackColor = true;
             this.cadButton.Click += new System.EventHandler(this.sendCtrlAltDelToolStripMenuItem_Click);
             //
@@ -904,6 +922,7 @@ namespace MeshCentralRouter
         private Button themeButton;
         private Button gearButton;
         private Button displayButton;
+        private Button otherButton;
         private Button infoButton;
         private Panel dropdownPane;
         private Panel dropdownPaneContent;

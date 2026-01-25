@@ -33,7 +33,7 @@
     <UpdateRequired>false</UpdateRequired>
     <MapFileExtensions>true</MapFileExtensions>
     <ApplicationRevision>0</ApplicationRevision>
-    <ApplicationVersion>1.0.0.%2a</ApplicationVersion>
+    <ApplicationVersion>1.14.%2a</ApplicationVersion>
     <UseApplicationTrust>false</UseApplicationTrust>
     <BootstrapperEnabled>true</BootstrapperEnabled>
   </PropertyGroup>
@@ -193,6 +193,9 @@
       <SubType>Component</SubType>
     </Compile>
     <Compile Include="src\ToggleButtonGroup.cs">
+      <SubType>Component</SubType>
+    </Compile>
+    <Compile Include="src\SettingsToggleItem.cs">
       <SubType>Component</SubType>
     </Compile>
     <Compile Include="src\InstallForm.cs">

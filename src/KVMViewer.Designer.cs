@@ -584,7 +584,6 @@ namespace MeshCentralRouter
             this.titleBarPanel.Controls.Add(this.gearButton);
             this.titleBarPanel.Controls.Add(this.displayButton);
             this.titleBarPanel.Controls.Add(this.otherButton);
-            this.titleBarPanel.Controls.Add(this.connectButton);
             this.titleBarPanel.Controls.Add(this.titleLabel);
             this.titleBarPanel.Dock = System.Windows.Forms.DockStyle.Top;
             this.titleBarPanel.Location = new System.Drawing.Point(0, 0);
@@ -859,7 +858,7 @@ namespace MeshCentralRouter
             //
             this.titleLabel.AutoSize = true;
             this.titleLabel.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.titleLabel.Location = new System.Drawing.Point(148, 8);
+            this.titleLabel.Location = new System.Drawing.Point(8, 8);
             this.titleLabel.Name = "titleLabel";
             this.titleLabel.Size = new System.Drawing.Size(111, 15);
             this.titleLabel.TabIndex = 0;

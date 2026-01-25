@@ -90,6 +90,10 @@ namespace MeshCentralRouter
         private bool localAutoReconnect = true;
         private Dictionary<int, Button> displaySelectionButtons = new Dictionary<int, Button>();
 
+        // Connection button labels for dynamic updates
+        private Label connectionIconLabel = null;
+        private Label connectionTextLabel = null;
+
         // Title bar dragging support
         private bool isDragging = false;
         private Point dragOffset;
@@ -139,6 +143,7 @@ namespace MeshCentralRouter
             kvmControl.MouseDown += KvmControl_MouseDown_ClosePane;
             resizeKvmControl.MouseDown += KvmControl_MouseDown_ClosePane;
             mainStatusStrip.MouseDown += KvmControl_MouseDown_ClosePane;
+            titleBarPanel.MouseDown += KvmControl_MouseDown_ClosePane;
             resizeKvmControl.ZoomToFit = true;
             UpdateStatus();
             this.MouseWheel += MainForm_MouseWheel;
@@ -531,6 +536,14 @@ namespace MeshCentralRouter
             }
             clipInboundButton.Enabled = (state == 3);
             clipOutboundButton.Enabled = (state == 3);
+
+            // Update connection button in settings pane if visible
+            if (connectionIconLabel != null && connectionTextLabel != null)
+            {
+                bool isDisconnected = (state == 0);
+                connectionIconLabel.Text = isDisconnected ? "🔌" : "⏏";
+                connectionTextLabel.Text = isDisconnected ? Translate.T(Properties.Resources.Connect, lang) : Translate.T(Properties.Resources.Disconnect, lang);
+            }
         }
 
         private void updateTimer_Tick(object sender, EventArgs e)
@@ -1905,164 +1918,162 @@ namespace MeshCentralRouter
             dropdownPaneContent.Controls.Clear();
 
             var ps = new DropdownPaneStyle();
-            int yOffset = DropdownPaneStyle.ContentTopPadding;
-
-            // Status Bar toggle - 1 unit wide, toggle above text, bordered like Fast button
-            int statusButtonUnitWidth = DropdownPaneStyle.ButtonUnitWidth(DropdownPaneStyle.PaneWidth);
-            Button statusBarRow = new Button();
-            ps.ApplyFlatButtonStyle(statusBarRow);
-            statusBarRow.Location = new Point(DropdownPaneStyle.SidePadding, yOffset);
-            statusBarRow.Size = new Size(statusButtonUnitWidth, DropdownPaneStyle.ItemHeight);
-            statusBarRow.Click += (s, ev) => { paneStatusBarToggleSwitch.Checked = !paneStatusBarToggleSwitch.Checked; };
-
-            // Toggle switch and label vertically centered
-            // Total content: toggle (16) + gap (4) + label (20) = 40, button height = 72
-            // Top padding = (72 - 40) / 2 = 16
-            int verticalPadding = (DropdownPaneStyle.ItemHeight - (16 + 4 + 20)) / 2;
-            paneStatusBarToggleSwitch.Size = new Size(32, 16);
-            paneStatusBarToggleSwitch.Location = new Point((statusButtonUnitWidth - 32) / 2, verticalPadding);
-
-            Label statusBarLabel = new Label();
-            statusBarLabel.Text = "Status Bar";
-            statusBarLabel.Font = DropdownPaneStyle.SmallFont;
-            statusBarLabel.ForeColor = ps.PaneTextColor;
-            statusBarLabel.BackColor = Color.Transparent;
-            statusBarLabel.Size = new Size(statusButtonUnitWidth, 20);
-            statusBarLabel.TextAlign = ContentAlignment.MiddleCenter;
-            statusBarLabel.Location = new Point(0, verticalPadding + 16 + 4);
-            statusBarRow.Controls.Add(statusBarLabel);
-            // Update toggle colors based on theme
             bool isDark = ThemeManager.Instance.IsDarkMode;
-            paneStatusBarToggleSwitch.OffColor = isDark ? Color.FromArgb(90, 90, 90) : Color.LightGray;
-            paneStatusBarToggleSwitch.OnColor = Color.FromArgb(76, 175, 80);
-            paneStatusBarToggleSwitch.ThumbColor = isDark ? Color.FromArgb(235, 235, 235) : Color.White;
-            paneStatusBarToggleSwitch.BackColor = ps.PaneBgColor;
-            statusBarRow.Controls.Add(paneStatusBarToggleSwitch);
 
-            dropdownPaneContent.Controls.Add(statusBarRow);
+            // Improved layout constants
+            int itemWidth = 80;
+            int itemHeight = 64;
+            int itemSpacing = 8;
+            int sidePadding = 12;
+            int topPadding = 10;
+            int paneWidth = (itemWidth * 4) + (itemSpacing * 3) + (sidePadding * 2);
 
-            // Auto Reconnect toggle - next to Status Bar toggle
-            Button autoReconnectRow = new Button();
-            ps.ApplyFlatButtonStyle(autoReconnectRow);
-            autoReconnectRow.Location = new Point(DropdownPaneStyle.SidePadding + statusButtonUnitWidth + 4, yOffset);
-            autoReconnectRow.Size = new Size(statusButtonUnitWidth, DropdownPaneStyle.ItemHeight);
-            autoReconnectRow.Click += (s, ev) => { paneAutoReconnectToggleSwitch.Checked = !paneAutoReconnectToggleSwitch.Checked; };
+            int yOffset = topPadding;
 
-            paneAutoReconnectToggleSwitch.Size = new Size(32, 16);
-            paneAutoReconnectToggleSwitch.Location = new Point((statusButtonUnitWidth - 32) / 2, verticalPadding);
+            // Helper to create rounded rectangle region
+            Func<int, int, int, System.Drawing.Region> createRoundedRegion = (width, height, radius) =>
+            {
+                System.Drawing.Drawing2D.GraphicsPath path = new System.Drawing.Drawing2D.GraphicsPath();
+                int diameter = radius * 2;
+                path.AddArc(0, 0, diameter, diameter, 180, 90);
+                path.AddArc(width - diameter, 0, diameter, diameter, 270, 90);
+                path.AddArc(width - diameter, height - diameter, diameter, diameter, 0, 90);
+                path.AddArc(0, height - diameter, diameter, diameter, 90, 90);
+                path.CloseFigure();
+                return new System.Drawing.Region(path);
+            };
 
-            // Use word-wrapped label for "Auto Reconnect"
-            int labelHeight = 32; // Two lines of text
-            int autoReconnectVerticalPadding = (DropdownPaneStyle.ItemHeight - (16 + 4 + labelHeight)) / 2;
-            paneAutoReconnectToggleSwitch.Location = new Point((statusButtonUnitWidth - 32) / 2, autoReconnectVerticalPadding);
+            int cornerRadius = 8;
 
-            Label autoReconnectLabel = new Label();
-            autoReconnectLabel.Text = "Auto\nReconnect";
-            autoReconnectLabel.Font = DropdownPaneStyle.SmallFont;
-            autoReconnectLabel.ForeColor = ps.PaneTextColor;
-            autoReconnectLabel.BackColor = Color.Transparent;
-            autoReconnectLabel.Size = new Size(statusButtonUnitWidth, labelHeight);
-            autoReconnectLabel.TextAlign = ContentAlignment.MiddleCenter;
-            autoReconnectLabel.Location = new Point(0, autoReconnectVerticalPadding + 16 + 4);
-            autoReconnectRow.Controls.Add(autoReconnectLabel);
+            // Helper to create a toggle item panel with rounded corners
+            Func<string, ToggleSwitch, int, int, Panel> createToggleItem = (labelText, toggle, x, y) =>
+            {
+                Panel itemPanel = new Panel();
+                itemPanel.Size = new Size(itemWidth, itemHeight);
+                itemPanel.Location = new Point(x, y);
+                itemPanel.BackColor = isDark ? Color.FromArgb(55, 55, 55) : Color.FromArgb(235, 235, 235);
+                itemPanel.Cursor = Cursors.Hand;
+                itemPanel.Region = createRoundedRegion(itemWidth, itemHeight, cornerRadius);
 
-            paneAutoReconnectToggleSwitch.OffColor = isDark ? Color.FromArgb(90, 90, 90) : Color.LightGray;
-            paneAutoReconnectToggleSwitch.OnColor = Color.FromArgb(76, 175, 80);
-            paneAutoReconnectToggleSwitch.ThumbColor = isDark ? Color.FromArgb(235, 235, 235) : Color.White;
-            paneAutoReconnectToggleSwitch.BackColor = ps.PaneBgColor;
-            autoReconnectRow.Controls.Add(paneAutoReconnectToggleSwitch);
+                // Toggle switch centered near top
+                toggle.Size = new Size(36, 18);
+                toggle.Location = new Point((itemWidth - 36) / 2, 12);
+                toggle.OffColor = isDark ? Color.FromArgb(90, 90, 90) : Color.FromArgb(180, 180, 180);
+                toggle.OnColor = Color.FromArgb(76, 175, 80);
+                toggle.ThumbColor = isDark ? Color.FromArgb(235, 235, 235) : Color.White;
+                toggle.BackColor = itemPanel.BackColor;
+                itemPanel.Controls.Add(toggle);
 
-            dropdownPaneContent.Controls.Add(autoReconnectRow);
+                // Label below toggle
+                Label lbl = new Label();
+                lbl.Text = labelText;
+                lbl.Font = new Font("Segoe UI", 8F);
+                lbl.ForeColor = ps.PaneTextColor;
+                lbl.BackColor = Color.Transparent;
+                lbl.Size = new Size(itemWidth - 4, 28);
+                lbl.Location = new Point(2, 34);
+                lbl.TextAlign = ContentAlignment.TopCenter;
+                itemPanel.Controls.Add(lbl);
 
-            // Swap Mouse toggle - next to Auto Reconnect toggle
-            Button swapMouseRow = new Button();
-            ps.ApplyFlatButtonStyle(swapMouseRow);
-            swapMouseRow.Location = new Point(DropdownPaneStyle.SidePadding + (statusButtonUnitWidth + 4) * 2, yOffset);
-            swapMouseRow.Size = new Size(statusButtonUnitWidth, DropdownPaneStyle.ItemHeight);
-            swapMouseRow.Click += (s, ev) => { paneSwapMouseToggleSwitch.Checked = !paneSwapMouseToggleSwitch.Checked; };
+                // Click anywhere on panel toggles the switch
+                itemPanel.Click += (s, ev) => { toggle.Checked = !toggle.Checked; };
+                lbl.Click += (s, ev) => { toggle.Checked = !toggle.Checked; };
 
-            paneSwapMouseToggleSwitch.Size = new Size(32, 16);
-            paneSwapMouseToggleSwitch.Location = new Point((statusButtonUnitWidth - 32) / 2, autoReconnectVerticalPadding);
+                return itemPanel;
+            };
 
-            Label swapMouseLabel = new Label();
-            swapMouseLabel.Text = "Swap\nMouse";
-            swapMouseLabel.Font = DropdownPaneStyle.SmallFont;
-            swapMouseLabel.ForeColor = ps.PaneTextColor;
-            swapMouseLabel.BackColor = Color.Transparent;
-            swapMouseLabel.Size = new Size(statusButtonUnitWidth, labelHeight);
-            swapMouseLabel.TextAlign = ContentAlignment.MiddleCenter;
-            swapMouseLabel.Location = new Point(0, autoReconnectVerticalPadding + 16 + 4);
-            swapMouseRow.Controls.Add(swapMouseLabel);
+            // === Connection Group (at top) ===
+            Label connectionGroupLabel = new Label();
+            connectionGroupLabel.Text = "Connection";
+            connectionGroupLabel.Font = new Font("Segoe UI Semibold", 9F);
+            connectionGroupLabel.ForeColor = ps.LabelColor;
+            connectionGroupLabel.BackColor = Color.Transparent;
+            connectionGroupLabel.Location = new Point(sidePadding, yOffset);
+            connectionGroupLabel.AutoSize = true;
+            dropdownPaneContent.Controls.Add(connectionGroupLabel);
 
-            paneSwapMouseToggleSwitch.OffColor = isDark ? Color.FromArgb(90, 90, 90) : Color.LightGray;
-            paneSwapMouseToggleSwitch.OnColor = Color.FromArgb(76, 175, 80);
-            paneSwapMouseToggleSwitch.ThumbColor = isDark ? Color.FromArgb(235, 235, 235) : Color.White;
-            paneSwapMouseToggleSwitch.BackColor = ps.PaneBgColor;
-            swapMouseRow.Controls.Add(paneSwapMouseToggleSwitch);
+            yOffset += 22;
 
-            dropdownPaneContent.Controls.Add(swapMouseRow);
+            // Connect/Disconnect action button
+            Panel disconnectPanel = new Panel();
+            disconnectPanel.Size = new Size(itemWidth, itemHeight);
+            disconnectPanel.Location = new Point(sidePadding, yOffset);
+            disconnectPanel.BackColor = isDark ? Color.FromArgb(55, 55, 55) : Color.FromArgb(235, 235, 235);
+            disconnectPanel.Cursor = Cursors.Hand;
+            disconnectPanel.Region = createRoundedRegion(itemWidth, itemHeight, cornerRadius);
 
-            // Remote Key Map toggle - next to Swap Mouse toggle
-            Button remoteKeyMapRow = new Button();
-            ps.ApplyFlatButtonStyle(remoteKeyMapRow);
-            remoteKeyMapRow.Location = new Point(DropdownPaneStyle.SidePadding + (statusButtonUnitWidth + 4) * 3, yOffset);
-            remoteKeyMapRow.Size = new Size(statusButtonUnitWidth, DropdownPaneStyle.ItemHeight);
-            remoteKeyMapRow.Click += (s, ev) => { paneRemoteKeyMapToggleSwitch.Checked = !paneRemoteKeyMapToggleSwitch.Checked; };
+            bool isDisconnected = (this.state == 0);
+            string disconnectText = isDisconnected ? Translate.T(Properties.Resources.Connect, lang) : Translate.T(Properties.Resources.Disconnect, lang);
+            string disconnectIcon = isDisconnected ? "🔌" : "⏏";
 
-            paneRemoteKeyMapToggleSwitch.Size = new Size(32, 16);
-            paneRemoteKeyMapToggleSwitch.Location = new Point((statusButtonUnitWidth - 32) / 2, autoReconnectVerticalPadding);
+            Label iconLabel = new Label();
+            iconLabel.Text = disconnectIcon;
+            iconLabel.Font = new Font("Segoe UI Emoji", 14F);
+            iconLabel.ForeColor = ps.LabelColor;
+            iconLabel.BackColor = Color.Transparent;
+            iconLabel.Size = new Size(itemWidth, 24);
+            iconLabel.Location = new Point(0, 10);
+            iconLabel.TextAlign = ContentAlignment.MiddleCenter;
+            disconnectPanel.Controls.Add(iconLabel);
 
-            Label remoteKeyMapLabel = new Label();
-            remoteKeyMapLabel.Text = "Remote\nKey Map";
-            remoteKeyMapLabel.Font = DropdownPaneStyle.SmallFont;
-            remoteKeyMapLabel.ForeColor = ps.PaneTextColor;
-            remoteKeyMapLabel.BackColor = Color.Transparent;
-            remoteKeyMapLabel.Size = new Size(statusButtonUnitWidth, labelHeight);
-            remoteKeyMapLabel.TextAlign = ContentAlignment.MiddleCenter;
-            remoteKeyMapLabel.Location = new Point(0, autoReconnectVerticalPadding + 16 + 4);
-            remoteKeyMapRow.Controls.Add(remoteKeyMapLabel);
+            Label disconnectLabel = new Label();
+            disconnectLabel.Text = disconnectText;
+            disconnectLabel.Font = new Font("Segoe UI", 8F);
+            disconnectLabel.ForeColor = ps.PaneTextColor;
+            disconnectLabel.BackColor = Color.Transparent;
+            disconnectLabel.Size = new Size(itemWidth - 4, 20);
+            disconnectLabel.Location = new Point(2, 38);
+            disconnectLabel.TextAlign = ContentAlignment.TopCenter;
+            disconnectPanel.Controls.Add(disconnectLabel);
 
-            paneRemoteKeyMapToggleSwitch.OffColor = isDark ? Color.FromArgb(90, 90, 90) : Color.LightGray;
-            paneRemoteKeyMapToggleSwitch.OnColor = Color.FromArgb(76, 175, 80);
-            paneRemoteKeyMapToggleSwitch.ThumbColor = isDark ? Color.FromArgb(235, 235, 235) : Color.White;
-            paneRemoteKeyMapToggleSwitch.BackColor = ps.PaneBgColor;
-            remoteKeyMapRow.Controls.Add(paneRemoteKeyMapToggleSwitch);
+            // Store references for dynamic updates
+            connectionIconLabel = iconLabel;
+            connectionTextLabel = disconnectLabel;
 
-            dropdownPaneContent.Controls.Add(remoteKeyMapRow);
-            yOffset += DropdownPaneStyle.ItemHeight + 4;
+            disconnectPanel.Click += (s, ev) => { MenuItemDisconnect_Click(s, ev); };
+            iconLabel.Click += (s, ev) => { MenuItemDisconnect_Click(s, ev); };
+            disconnectLabel.Click += (s, ev) => { MenuItemDisconnect_Click(s, ev); };
 
-            // Sync Clipboard toggle - on new row
-            Button syncClipboardRow = new Button();
-            ps.ApplyFlatButtonStyle(syncClipboardRow);
-            syncClipboardRow.Location = new Point(DropdownPaneStyle.SidePadding, yOffset);
-            syncClipboardRow.Size = new Size(statusButtonUnitWidth, DropdownPaneStyle.ItemHeight);
-            syncClipboardRow.Click += (s, ev) => { paneSyncClipboardToggleSwitch.Checked = !paneSyncClipboardToggleSwitch.Checked; };
+            dropdownPaneContent.Controls.Add(disconnectPanel);
 
-            paneSyncClipboardToggleSwitch.Size = new Size(32, 16);
-            paneSyncClipboardToggleSwitch.Location = new Point((statusButtonUnitWidth - 32) / 2, autoReconnectVerticalPadding);
+            yOffset += itemHeight + itemSpacing + 4;
 
-            Label syncClipboardLabel = new Label();
-            syncClipboardLabel.Text = "Sync\nClipboard";
-            syncClipboardLabel.Font = DropdownPaneStyle.SmallFont;
-            syncClipboardLabel.ForeColor = ps.PaneTextColor;
-            syncClipboardLabel.BackColor = Color.Transparent;
-            syncClipboardLabel.Size = new Size(statusButtonUnitWidth, labelHeight);
-            syncClipboardLabel.TextAlign = ContentAlignment.MiddleCenter;
-            syncClipboardLabel.Location = new Point(0, autoReconnectVerticalPadding + 16 + 4);
-            syncClipboardRow.Controls.Add(syncClipboardLabel);
+            // === Settings Group ===
+            Label settingsGroupLabel = new Label();
+            settingsGroupLabel.Text = "Settings";
+            settingsGroupLabel.Font = new Font("Segoe UI Semibold", 9F);
+            settingsGroupLabel.ForeColor = ps.LabelColor;
+            settingsGroupLabel.BackColor = Color.Transparent;
+            settingsGroupLabel.Location = new Point(sidePadding, yOffset);
+            settingsGroupLabel.AutoSize = true;
+            dropdownPaneContent.Controls.Add(settingsGroupLabel);
 
-            paneSyncClipboardToggleSwitch.OffColor = isDark ? Color.FromArgb(90, 90, 90) : Color.LightGray;
-            paneSyncClipboardToggleSwitch.OnColor = Color.FromArgb(76, 175, 80);
-            paneSyncClipboardToggleSwitch.ThumbColor = isDark ? Color.FromArgb(235, 235, 235) : Color.White;
-            paneSyncClipboardToggleSwitch.BackColor = ps.PaneBgColor;
-            syncClipboardRow.Controls.Add(paneSyncClipboardToggleSwitch);
+            yOffset += 22;
 
-            dropdownPaneContent.Controls.Add(syncClipboardRow);
-            yOffset += DropdownPaneStyle.ItemHeight + 4;
+            // Row 1: Status Bar, Auto Reconnect, Swap Mouse, Remote Key Map
+            dropdownPaneContent.Controls.Add(createToggleItem("Status Bar", paneStatusBarToggleSwitch, sidePadding, yOffset));
+            dropdownPaneContent.Controls.Add(createToggleItem("Auto\nReconnect", paneAutoReconnectToggleSwitch, sidePadding + itemWidth + itemSpacing, yOffset));
+            dropdownPaneContent.Controls.Add(createToggleItem("Swap\nMouse", paneSwapMouseToggleSwitch, sidePadding + (itemWidth + itemSpacing) * 2, yOffset));
+            dropdownPaneContent.Controls.Add(createToggleItem("Remote\nKey Map", paneRemoteKeyMapToggleSwitch, sidePadding + (itemWidth + itemSpacing) * 3, yOffset));
+
+            yOffset += itemHeight + itemSpacing;
+
+            // Row 2: Sync Clipboard
+            dropdownPaneContent.Controls.Add(createToggleItem("Sync\nClipboard", paneSyncClipboardToggleSwitch, sidePadding, yOffset));
+
+            yOffset += itemHeight + topPadding;
 
             // Size and show the dropdown pane
-            ps.FinalizePane(dropdownPane, dropdownPaneLabel, dropdownPaneContent,
-                           yOffset, this.Width, titleBarPanel.Bottom);
+            dropdownPaneContent.Size = new Size(paneWidth - 2, yOffset);
+            dropdownPane.Size = new Size(paneWidth, DropdownPaneStyle.PaneHeaderHeight + yOffset);
+
+            int centerX = (this.Width - dropdownPane.Width) / 2;
+            dropdownPane.Location = new Point(centerX, titleBarPanel.Bottom);
+
+            dropdownPane.Visible = true;
+            dropdownPane.BringToFront();
+
+            ps.ApplyPaneTheme(dropdownPane, dropdownPaneLabel, dropdownPaneContent);
         }
 
         private void ShowDropdownPane(string title, params Control[] contentControls)

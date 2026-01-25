@@ -1,4 +1,6 @@
-﻿using System.Windows.Forms;
+﻿using System;
+using System.Drawing;
+using System.Windows.Forms;
 
 namespace MeshCentralRouter
 {
@@ -173,6 +175,164 @@ namespace MeshCentralRouter
                 this.ForeColor,
                 System.Windows.Forms.TextFormatFlags.HorizontalCenter | System.Windows.Forms.TextFormatFlags.VerticalCenter
             );
+        }
+    }
+
+    /// <summary>
+    /// Centralized style definitions and helpers for dropdown pane UI.
+    /// All layout constants, theme colors, fonts, and control factory methods
+    /// live here so that any visual change only needs to happen in one place.
+    /// </summary>
+    public class DropdownPaneStyle
+    {
+        // ── Layout Constants ──────────────────────────────────────
+        public const int PaneWidth = 365;
+        public const int SectionHeaderHeight = 36;
+        public const int ItemHeight = SectionHeaderHeight * 2;  // 72
+        public const int SidePadding = 8;
+        public const int ButtonSpacing = 4;
+        public const int SectionSpacing = 8;
+        public const int GroupSpacing = 8;
+        public const int PaneHeaderHeight = 28;
+        public const int ContentTopPadding = 4;
+        public const int StatsRowHeight = 28;
+        public const int StatsLabelWidth = 130;
+
+        // ── Fonts ─────────────────────────────────────────────────
+        public static readonly Font SectionHeaderFont = new Font("Segoe UI", 10F, FontStyle.Bold);
+        public static readonly Font ItemFont = new Font("Segoe UI", 9.5F);
+        public static readonly Font SmallFont = new Font("Segoe UI", 8F);
+        public static readonly Font ZoomButtonFont = new Font("Segoe UI", 10F, FontStyle.Bold);
+        public static readonly Font ScalingLabelFont = new Font("Segoe UI", 9F);
+
+        // ── Theme Colors ──────────────────────────────────────────
+        public Color PaneBgColor { get; private set; }
+        public Color PaneTextColor { get; private set; }
+        public Color PaneHoverColor { get; private set; }
+        public Color BorderColor { get; private set; }
+        public Color SelectedColor { get; private set; }
+        public Color SelectedBorderColor { get; private set; }
+        public Color LabelColor { get; private set; }
+
+        public DropdownPaneStyle()
+        {
+            bool dark = ThemeManager.Instance.IsDarkMode;
+            PaneBgColor = dark ? Color.FromArgb(45, 45, 45) : Color.FromArgb(250, 250, 250);
+            PaneTextColor = dark ? Color.White : Color.Black;
+            PaneHoverColor = dark ? Color.FromArgb(60, 60, 60) : Color.FromArgb(230, 230, 230);
+            BorderColor = dark ? Color.FromArgb(80, 80, 80) : Color.FromArgb(200, 200, 200);
+            SelectedColor = dark ? Color.FromArgb(70, 130, 180) : Color.FromArgb(200, 220, 240);
+            SelectedBorderColor = dark ? Color.FromArgb(100, 149, 237) : Color.FromArgb(70, 130, 180);
+            LabelColor = dark ? Color.FromArgb(180, 180, 180) : Color.FromArgb(100, 100, 100);
+        }
+
+        // ── Helpers ───────────────────────────────────────────────
+
+        /// <summary>
+        /// Returns the dynamic pane width for grid-based layouts.
+        /// </summary>
+        public int CalculateGridPaneWidth(DropdownPaneLayout layout)
+        {
+            return Math.Max(PaneWidth, layout.ColumnsPerPane * 130
+                            + (layout.ColumnsPerPane - 1) * GroupSpacing + 8);
+        }
+
+        /// <summary>
+        /// Returns the width of a single button unit in a 4-column grid.
+        /// </summary>
+        public static int ButtonUnitWidth(int paneWidth)
+        {
+            return (paneWidth - (SidePadding * 2) - (ButtonSpacing * 3)) / 4;
+        }
+
+        /// <summary>
+        /// Creates a section header label (e.g. "Actions", "Frame Rate").
+        /// </summary>
+        public Label CreateSectionHeader(string text, int yOffset,
+                                         int height = SectionHeaderHeight,
+                                         int width = PaneWidth)
+        {
+            return new Label
+            {
+                Text = text,
+                Font = SectionHeaderFont,
+                ForeColor = PaneTextColor,
+                Location = new Point(SidePadding, yOffset),
+                Size = new Size(width - (SidePadding * 2), height)
+            };
+        }
+
+        /// <summary>
+        /// Applies standard flat button styling to any Button.
+        /// </summary>
+        public void ApplyFlatButtonStyle(Button btn, bool isSelected = false)
+        {
+            btn.FlatStyle = FlatStyle.Flat;
+            btn.FlatAppearance.BorderSize = 1;
+            btn.FlatAppearance.BorderColor = isSelected ? SelectedBorderColor : BorderColor;
+            btn.BackColor = isSelected ? SelectedColor : PaneBgColor;
+            btn.ForeColor = PaneTextColor;
+            btn.FlatAppearance.MouseOverBackColor = PaneHoverColor;
+        }
+
+        /// <summary>
+        /// Creates a stats row (label + value) and returns the new yOffset.
+        /// </summary>
+        public int AddStatsRow(Control parent, string labelText, Label valueLabel,
+                               int yOffset, int paneWidth = PaneWidth)
+        {
+            int valueWidth = paneWidth - StatsLabelWidth - 16;
+
+            Label lbl = new Label
+            {
+                Text = labelText,
+                Font = ItemFont,
+                ForeColor = LabelColor,
+                Location = new Point(SidePadding, yOffset),
+                Size = new Size(StatsLabelWidth, StatsRowHeight),
+                TextAlign = ContentAlignment.MiddleLeft
+            };
+            parent.Controls.Add(lbl);
+
+            valueLabel.Font = ItemFont;
+            valueLabel.ForeColor = PaneTextColor;
+            valueLabel.Location = new Point(StatsLabelWidth + SidePadding, yOffset);
+            valueLabel.Size = new Size(valueWidth, StatsRowHeight);
+            valueLabel.TextAlign = ContentAlignment.MiddleRight;
+            parent.Controls.Add(valueLabel);
+
+            return yOffset + StatsRowHeight + 2;
+        }
+
+        /// <summary>
+        /// Applies theme colors to the dropdown pane container.
+        /// </summary>
+        public void ApplyPaneTheme(Panel dropdownPane, Label dropdownPaneLabel,
+                                   Panel dropdownPaneContent)
+        {
+            dropdownPane.BackColor = PaneBgColor;
+            dropdownPaneLabel.ForeColor = PaneTextColor;
+            dropdownPaneContent.BackColor = PaneBgColor;
+        }
+
+        /// <summary>
+        /// Sizes, positions, shows, and themes the dropdown pane.
+        /// </summary>
+        public void FinalizePane(Panel dropdownPane, Label dropdownPaneLabel,
+                                 Panel dropdownPaneContent, int contentHeight,
+                                 int formWidth, int titleBarBottom,
+                                 int paneWidth = PaneWidth)
+        {
+            dropdownPaneContent.Size = new Size(paneWidth - 2, contentHeight);
+            dropdownPane.Size = new Size(paneWidth, PaneHeaderHeight + contentHeight);
+
+            int centerX = (formWidth - dropdownPane.Width) / 2;
+            dropdownPane.Location = new Point(centerX, titleBarBottom);
+
+            dropdownPane.Visible = true;
+            dropdownPane.BringToFront();
+
+            ApplyPaneTheme(dropdownPane, dropdownPaneLabel, dropdownPaneContent);
         }
     }
 

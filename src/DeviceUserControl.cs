@@ -40,6 +40,25 @@ namespace MeshCentralRouter
 
             // Enable custom painting for device name label
             deviceNameLabel.Paint += DeviceNameLabel_Paint;
+
+            // Apply initial theme to context menus
+            ApplyThemeToContextMenus();
+        }
+
+        public void ApplyThemeToContextMenus()
+        {
+            ThemeManager theme = ThemeManager.Instance;
+            ToolStripRenderer menuRenderer = theme.GetContextMenuRenderer();
+            Color bgColor = theme.GetBackgroundColor();
+            Color fgColor = theme.GetForegroundColor();
+
+            rdpContextMenuStrip.Renderer = menuRenderer;
+            rdpContextMenuStrip.BackColor = bgColor;
+            rdpContextMenuStrip.ForeColor = fgColor;
+
+            altPortContextMenuStrip.Renderer = menuRenderer;
+            altPortContextMenuStrip.BackColor = bgColor;
+            altPortContextMenuStrip.ForeColor = fgColor;
         }
 
         private void DeviceNameLabel_Paint(object sender, PaintEventArgs e)

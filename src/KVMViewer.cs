@@ -1050,64 +1050,33 @@ namespace MeshCentralRouter
             // Clear existing content
             dropdownPaneContent.Controls.Clear();
 
-            ThemeManager theme = ThemeManager.Instance;
-            Color paneBgColor = theme.IsDarkMode ? Color.FromArgb(45, 45, 45) : Color.FromArgb(250, 250, 250);
-            Color paneTextColor = theme.IsDarkMode ? Color.White : Color.Black;
-            Color paneHoverColor = theme.IsDarkMode ? Color.FromArgb(60, 60, 60) : Color.FromArgb(230, 230, 230);
-            Color borderColor = theme.IsDarkMode ? Color.FromArgb(80, 80, 80) : Color.FromArgb(200, 200, 200);
-
-            int yOffset = 4;
-            int sectionHeaderHeight = 36;
-            int itemHeight = sectionHeaderHeight * 2;
-            int paneWidth = 365;
-            int sidePadding = 8;
+            var ps = new DropdownPaneStyle();
+            int yOffset = DropdownPaneStyle.ContentTopPadding;
 
             // === Actions Section ===
-            Label actionsHeader = new Label();
-            actionsHeader.Text = "Actions";
-            actionsHeader.Font = new Font("Segoe UI", 10F, FontStyle.Bold);
-            actionsHeader.ForeColor = paneTextColor;
-            actionsHeader.Location = new Point(sidePadding, yOffset);
-            actionsHeader.Size = new Size(paneWidth - (sidePadding * 2), sectionHeaderHeight);
-            dropdownPaneContent.Controls.Add(actionsHeader);
-            yOffset += sectionHeaderHeight;
+            dropdownPaneContent.Controls.Add(ps.CreateSectionHeader("Actions", yOffset));
+            yOffset += DropdownPaneStyle.SectionHeaderHeight;
 
-            // CAD (Ctrl+Alt+Del) button - styled like a single ToggleButton (one unit wide, same height as frame rate buttons)
-            int buttonSpacing = 4;
-            int buttonUnitWidth = (paneWidth - (sidePadding * 2) - (buttonSpacing * 3)) / 4;
-            int toggleButtonHeight = sectionHeaderHeight * 2; // Match ToggleButton height in display pane
+            // CAD (Ctrl+Alt+Del) button - one unit wide, same height as frame rate buttons
+            int buttonUnitWidth = DropdownPaneStyle.ButtonUnitWidth(DropdownPaneStyle.PaneWidth);
             Button cadPaneButton = new Button();
-            cadPaneButton.FlatStyle = FlatStyle.Flat;
-            cadPaneButton.FlatAppearance.BorderSize = 1;
-            cadPaneButton.FlatAppearance.BorderColor = borderColor;
-            cadPaneButton.FlatAppearance.MouseOverBackColor = paneHoverColor;
-            cadPaneButton.BackColor = paneBgColor;
-            cadPaneButton.ForeColor = paneTextColor;
-            cadPaneButton.Font = new Font("Segoe UI", 8F);
+            ps.ApplyFlatButtonStyle(cadPaneButton);
+            cadPaneButton.Font = DropdownPaneStyle.SmallFont;
             cadPaneButton.Text = "Send\nCtrl-Alt-Del";
             cadPaneButton.TextAlign = ContentAlignment.MiddleCenter;
             cadPaneButton.Cursor = Cursors.Hand;
-            cadPaneButton.Location = new Point(sidePadding, yOffset);
-            cadPaneButton.Size = new Size(buttonUnitWidth, toggleButtonHeight);
+            cadPaneButton.Location = new Point(DropdownPaneStyle.SidePadding, yOffset);
+            cadPaneButton.Size = new Size(buttonUnitWidth, DropdownPaneStyle.ItemHeight);
             cadPaneButton.Click += (s, ev) => {
                 sendCtrlAltDelToolStripMenuItem_Click(s, ev);
                 HideDropdownPane();
             };
             dropdownPaneContent.Controls.Add(cadPaneButton);
-            yOffset += toggleButtonHeight + 8;
+            yOffset += DropdownPaneStyle.ItemHeight + 8;
 
             // Size and show the dropdown pane
-            int paneHeight = yOffset + 36;
-            dropdownPaneContent.Size = new Size(paneWidth - 2, yOffset);
-            dropdownPane.Size = new Size(paneWidth, paneHeight);
-            dropdownPane.BackColor = paneBgColor;
-            dropdownPaneLabel.ForeColor = paneTextColor;
-
-            // Center the dropdown pane
-            int paneCenterX = (this.Width - dropdownPane.Width) / 2;
-            dropdownPane.Location = new Point(paneCenterX, titleBarPanel.Height);
-            dropdownPane.Visible = true;
-            dropdownPane.BringToFront();
+            ps.FinalizePane(dropdownPane, dropdownPaneLabel, dropdownPaneContent,
+                           yOffset, this.Width, titleBarPanel.Height);
         }
 
         private void chatButton_Click(object sender, EventArgs e)
@@ -1369,48 +1338,12 @@ namespace MeshCentralRouter
             // Clear existing content
             dropdownPaneContent.Controls.Clear();
 
-            ThemeManager theme = ThemeManager.Instance;
-            Color paneBgColor = theme.IsDarkMode ? Color.FromArgb(45, 45, 45) : Color.FromArgb(250, 250, 250);
-            Color paneTextColor = theme.IsDarkMode ? Color.White : Color.Black;
-            Color labelColor = theme.IsDarkMode ? Color.FromArgb(180, 180, 180) : Color.FromArgb(100, 100, 100);
-
-            int yOffset = 4;
-            int rowHeight = 28;
-            int paneWidth = 365;
-            int labelWidth = 130;
-            int valueWidth = paneWidth - labelWidth - 16;
-
-            // Helper function to create a stats row
-            Action<string, Label> addStatsRow = (labelText, valueLabel) =>
-            {
-                Label lbl = new Label();
-                lbl.Text = labelText;
-                lbl.Font = new Font("Segoe UI", 9.5F);
-                lbl.ForeColor = labelColor;
-                lbl.Location = new Point(8, yOffset);
-                lbl.Size = new Size(labelWidth, rowHeight);
-                lbl.TextAlign = ContentAlignment.MiddleLeft;
-                dropdownPaneContent.Controls.Add(lbl);
-
-                valueLabel.Font = new Font("Segoe UI", 9.5F);
-                valueLabel.ForeColor = paneTextColor;
-                valueLabel.Location = new Point(labelWidth + 8, yOffset);
-                valueLabel.Size = new Size(valueWidth, rowHeight);
-                valueLabel.TextAlign = ContentAlignment.MiddleRight;
-                dropdownPaneContent.Controls.Add(valueLabel);
-
-                yOffset += rowHeight + 2;
-            };
+            var ps = new DropdownPaneStyle();
+            int yOffset = DropdownPaneStyle.ContentTopPadding;
 
             // Data Transfer section header
-            Label dataHeader = new Label();
-            dataHeader.Text = "Data Transfer";
-            dataHeader.Font = new Font("Segoe UI", 10F, FontStyle.Bold);
-            dataHeader.ForeColor = paneTextColor;
-            dataHeader.Location = new Point(8, yOffset);
-            dataHeader.Size = new Size(paneWidth - 16, rowHeight);
-            dropdownPaneContent.Controls.Add(dataHeader);
-            yOffset += rowHeight + 4;
+            dropdownPaneContent.Controls.Add(ps.CreateSectionHeader("Data Transfer", yOffset, DropdownPaneStyle.StatsRowHeight));
+            yOffset += DropdownPaneStyle.StatsRowHeight + 4;
 
             // Create value labels
             statsBytesInValueLabel = new Label();
@@ -1420,46 +1353,25 @@ namespace MeshCentralRouter
             statsInRatioValueLabel = new Label();
             statsOutRatioValueLabel = new Label();
 
-            addStatsRow("Bytes In:", statsBytesInValueLabel);
-            addStatsRow("Bytes Out:", statsBytesOutValueLabel);
+            yOffset = ps.AddStatsRow(dropdownPaneContent, "Bytes In:", statsBytesInValueLabel, yOffset);
+            yOffset = ps.AddStatsRow(dropdownPaneContent, "Bytes Out:", statsBytesOutValueLabel, yOffset);
 
             yOffset += 6; // Add spacing before compression section
 
             // Compression section header
-            Label compHeader = new Label();
-            compHeader.Text = "Compression";
-            compHeader.Font = new Font("Segoe UI", 10F, FontStyle.Bold);
-            compHeader.ForeColor = paneTextColor;
-            compHeader.Location = new Point(8, yOffset);
-            compHeader.Size = new Size(paneWidth - 16, rowHeight);
-            dropdownPaneContent.Controls.Add(compHeader);
-            yOffset += rowHeight + 4;
+            dropdownPaneContent.Controls.Add(ps.CreateSectionHeader("Compression", yOffset, DropdownPaneStyle.StatsRowHeight));
+            yOffset += DropdownPaneStyle.StatsRowHeight + 4;
 
-            addStatsRow("Compressed In:", statsCompInValueLabel);
-            addStatsRow("Compressed Out:", statsCompOutValueLabel);
-            addStatsRow("In Ratio:", statsInRatioValueLabel);
-            addStatsRow("Out Ratio:", statsOutRatioValueLabel);
+            yOffset = ps.AddStatsRow(dropdownPaneContent, "Compressed In:", statsCompInValueLabel, yOffset);
+            yOffset = ps.AddStatsRow(dropdownPaneContent, "Compressed Out:", statsCompOutValueLabel, yOffset);
+            yOffset = ps.AddStatsRow(dropdownPaneContent, "In Ratio:", statsInRatioValueLabel, yOffset);
+            yOffset = ps.AddStatsRow(dropdownPaneContent, "Out Ratio:", statsOutRatioValueLabel, yOffset);
 
             yOffset += 4;
 
-            // Calculate pane size
-            int contentHeight = yOffset;
-            dropdownPane.Size = new Size(paneWidth, 28 + contentHeight);
-            dropdownPaneContent.Size = new Size(paneWidth - 2, contentHeight);
-
-            // Position the dropdown centered under the info button
-            int centerX = (this.Width - dropdownPane.Width) / 2;
-            int paneY = titleBarPanel.Bottom;
-            dropdownPane.Location = new Point(centerX, paneY);
-
-            // Show and bring to front
-            dropdownPane.Visible = true;
-            dropdownPane.BringToFront();
-
-            // Apply theme to the container
-            dropdownPane.BackColor = paneBgColor;
-            dropdownPaneLabel.ForeColor = paneTextColor;
-            dropdownPaneContent.BackColor = paneBgColor;
+            // Size and show the dropdown pane
+            ps.FinalizePane(dropdownPane, dropdownPaneLabel, dropdownPaneContent,
+                           yOffset, this.Width, titleBarPanel.Bottom);
 
             // Update statistics immediately and start refresh timer
             UpdateStatisticsDisplay();
@@ -1543,40 +1455,23 @@ namespace MeshCentralRouter
             // Clear existing content
             dropdownPaneContent.Controls.Clear();
 
-            ThemeManager theme = ThemeManager.Instance;
-            Color paneBgColor = theme.IsDarkMode ? Color.FromArgb(45, 45, 45) : Color.FromArgb(250, 250, 250);
-            Color paneTextColor = theme.IsDarkMode ? Color.White : Color.Black;
-            Color paneHoverColor = theme.IsDarkMode ? Color.FromArgb(60, 60, 60) : Color.FromArgb(230, 230, 230);
-            Color selectedColor = theme.IsDarkMode ? Color.FromArgb(70, 130, 180) : Color.FromArgb(200, 220, 240);
-            Color borderColor = theme.IsDarkMode ? Color.FromArgb(80, 80, 80) : Color.FromArgb(200, 200, 200);
-            Color selectedBorderColor = theme.IsDarkMode ? Color.FromArgb(100, 149, 237) : Color.FromArgb(70, 130, 180);
-
-            int yOffset = 4;
-            int sectionHeaderHeight = 36;
-            int itemHeight = sectionHeaderHeight * 2; // Button height is 2x the header height
-            int paneWidth = 365;
-            int sidePadding = 8;
+            var ps = new DropdownPaneStyle();
+            int yOffset = DropdownPaneStyle.ContentTopPadding;
 
             // Select Displays section - only show if we have display info
             if (kvmControl != null && kvmControl.displays != null && kvmControl.displays.Count > 0)
             {
                 // Select Displays section header
-                Label selectDisplaysHeader = new Label();
-                selectDisplaysHeader.Text = "Select Displays";
-                selectDisplaysHeader.Font = new Font("Segoe UI", 10F, FontStyle.Bold);
-                selectDisplaysHeader.ForeColor = paneTextColor;
-                selectDisplaysHeader.Location = new Point(sidePadding, yOffset);
-                selectDisplaysHeader.Size = new Size(paneWidth - (sidePadding * 2), sectionHeaderHeight);
-                dropdownPaneContent.Controls.Add(selectDisplaysHeader);
-                yOffset += sectionHeaderHeight;
+                dropdownPaneContent.Controls.Add(ps.CreateSectionHeader("Select Displays", yOffset));
+                yOffset += DropdownPaneStyle.SectionHeaderHeight;
 
                 // Calculate display button layout
                 int displayCount = kvmControl.displays.Count;
                 int displayButtonSize = 36; // Square buttons for display icons
-                int displayButtonSpacing = 4;
+                int displayButtonSpacing = DropdownPaneStyle.ButtonSpacing;
                 int buttonsPerRow = Math.Min(displayCount, 6); // Max 6 per row
                 int totalButtonsWidth = buttonsPerRow * displayButtonSize + (buttonsPerRow - 1) * displayButtonSpacing;
-                int displayStartX = sidePadding + (paneWidth - (sidePadding * 2) - totalButtonsWidth) / 2; // Center buttons
+                int displayStartX = DropdownPaneStyle.SidePadding + (DropdownPaneStyle.PaneWidth - (DropdownPaneStyle.SidePadding * 2) - totalButtonsWidth) / 2;
 
                 int displayX = displayStartX;
                 int displayY = yOffset;
@@ -1586,12 +1481,8 @@ namespace MeshCentralRouter
                 foreach (ushort displayNum in kvmControl.displays)
                 {
                     Button displayBtn = new Button();
-                    displayBtn.FlatStyle = FlatStyle.Flat;
-                    displayBtn.FlatAppearance.BorderSize = 1;
                     bool isSelected = (kvmControl.currentDisp == displayNum);
-                    displayBtn.FlatAppearance.BorderColor = isSelected ? selectedBorderColor : borderColor;
-                    displayBtn.BackColor = isSelected ? selectedColor : paneBgColor;
-                    displayBtn.FlatAppearance.MouseOverBackColor = paneHoverColor;
+                    ps.ApplyFlatButtonStyle(displayBtn, isSelected);
                     displayBtn.Location = new Point(displayX, displayY);
                     displayBtn.Size = new Size(displayButtonSize, displayButtonSize);
                     displayBtn.Tag = displayNum;
@@ -1634,40 +1525,29 @@ namespace MeshCentralRouter
                 {
                     yOffset += 4;
                     Button splitJoinBtn = new Button();
-                    splitJoinBtn.FlatStyle = FlatStyle.Flat;
-                    splitJoinBtn.FlatAppearance.BorderSize = 1;
-                    splitJoinBtn.FlatAppearance.BorderColor = borderColor;
-                    splitJoinBtn.Font = new Font("Segoe UI", 8.5F);
-                    splitJoinBtn.ForeColor = paneTextColor;
-                    splitJoinBtn.BackColor = paneBgColor;
-                    splitJoinBtn.FlatAppearance.MouseOverBackColor = paneHoverColor;
-                    splitJoinBtn.Location = new Point(sidePadding, yOffset);
-                    splitJoinBtn.Size = new Size(paneWidth - (sidePadding * 2), itemHeight);
+                    ps.ApplyFlatButtonStyle(splitJoinBtn);
+                    splitJoinBtn.Font = DropdownPaneStyle.ItemFont;
+                    splitJoinBtn.Location = new Point(DropdownPaneStyle.SidePadding, yOffset);
+                    splitJoinBtn.Size = new Size(DropdownPaneStyle.PaneWidth - (DropdownPaneStyle.SidePadding * 2), DropdownPaneStyle.ItemHeight);
                     splitJoinBtn.Text = splitMode ? Translate.T(Properties.Resources.Join, lang) : Translate.T(Properties.Resources.Split, lang);
                     splitJoinBtn.Click += DisplayPaneSplitButton_Click;
                     dropdownPaneContent.Controls.Add(splitJoinBtn);
-                    yOffset += itemHeight;
+                    yOffset += DropdownPaneStyle.ItemHeight;
                 }
 
                 yOffset += 8; // Add spacing after section
             }
 
             // Frame Rate section header
-            Label frameRateHeader = new Label();
-            frameRateHeader.Text = Translate.T(Properties.Resources.FrameRate, lang);
-            frameRateHeader.Font = new Font("Segoe UI", 10F, FontStyle.Bold);
-            frameRateHeader.ForeColor = paneTextColor;
-            frameRateHeader.Location = new Point(sidePadding, yOffset);
-            frameRateHeader.Size = new Size(paneWidth - (sidePadding * 2), sectionHeaderHeight);
-            dropdownPaneContent.Controls.Add(frameRateHeader);
-            yOffset += sectionHeaderHeight;
+            dropdownPaneContent.Controls.Add(ps.CreateSectionHeader(Translate.T(Properties.Resources.FrameRate, lang), yOffset));
+            yOffset += DropdownPaneStyle.SectionHeaderHeight;
 
             // Create ToggleButtonGroup for frame rate options
             frameRateButtonGroup = new ToggleButtonGroup();
             frameRateButtonGroup.Location = new Point(0, yOffset);
-            frameRateButtonGroup.Size = new Size(paneWidth, itemHeight);
-            frameRateButtonGroup.ButtonSpacing = 4;
-            frameRateButtonGroup.SidePadding = sidePadding;
+            frameRateButtonGroup.Size = new Size(DropdownPaneStyle.PaneWidth, DropdownPaneStyle.ItemHeight);
+            frameRateButtonGroup.ButtonSpacing = DropdownPaneStyle.ButtonSpacing;
+            frameRateButtonGroup.SidePadding = DropdownPaneStyle.SidePadding;
             frameRateButtonGroup.SelectedValue = kvmControl.FrameRate;
 
             // Add frame rate options: Fast (50ms), Medium (100ms), Slow (400ms), Very Slow (1000ms)
@@ -1677,40 +1557,29 @@ namespace MeshCentralRouter
             frameRateButtonGroup.AddButton(Translate.T(Properties.Resources.VerySlow, lang), 1000);
 
             // Apply theme colors
-            frameRateButtonGroup.UpdateTheme(paneBgColor, paneTextColor, selectedColor,
-                borderColor, selectedBorderColor, paneHoverColor);
+            frameRateButtonGroup.UpdateTheme(ps.PaneBgColor, ps.PaneTextColor, ps.SelectedColor,
+                ps.BorderColor, ps.SelectedBorderColor, ps.PaneHoverColor);
 
             // Handle value changes
             frameRateButtonGroup.SelectedValueChanged += FrameRateButtonGroup_SelectedValueChanged;
 
             dropdownPaneContent.Controls.Add(frameRateButtonGroup);
-            yOffset += itemHeight + 8;
+            yOffset += DropdownPaneStyle.ItemHeight + 8;
 
             // Scaling section header
-            Label scalingHeader = new Label();
-            scalingHeader.Text = "Scaling";
-            scalingHeader.Font = new Font("Segoe UI", 10F, FontStyle.Bold);
-            scalingHeader.ForeColor = paneTextColor;
-            scalingHeader.Location = new Point(sidePadding, yOffset);
-            scalingHeader.Size = new Size(paneWidth - (sidePadding * 2), sectionHeaderHeight);
-            dropdownPaneContent.Controls.Add(scalingHeader);
-            yOffset += sectionHeaderHeight;
+            dropdownPaneContent.Controls.Add(ps.CreateSectionHeader("Scaling", yOffset));
+            yOffset += DropdownPaneStyle.SectionHeaderHeight;
 
             // First row: Zoom Out | Current Level | Zoom In (half-height)
-            int halfHeight = sectionHeaderHeight;
-            int scalingRowWidth = paneWidth - (sidePadding * 2);
+            int halfHeight = DropdownPaneStyle.SectionHeaderHeight;
+            int scalingRowWidth = DropdownPaneStyle.PaneWidth - (DropdownPaneStyle.SidePadding * 2);
             int zoomButtonWidth = (scalingRowWidth - 4) / 3; // 3 columns with small gaps
 
             // Zoom out button
             Button zoomOutBtn = new Button();
-            zoomOutBtn.FlatStyle = FlatStyle.Flat;
-            zoomOutBtn.FlatAppearance.BorderSize = 1;
-            zoomOutBtn.FlatAppearance.BorderColor = borderColor;
-            zoomOutBtn.Font = new Font("Segoe UI", 10F, FontStyle.Bold);
-            zoomOutBtn.ForeColor = paneTextColor;
-            zoomOutBtn.BackColor = paneBgColor;
-            zoomOutBtn.FlatAppearance.MouseOverBackColor = paneHoverColor;
-            zoomOutBtn.Location = new Point(sidePadding, yOffset);
+            ps.ApplyFlatButtonStyle(zoomOutBtn);
+            zoomOutBtn.Font = DropdownPaneStyle.ZoomButtonFont;
+            zoomOutBtn.Location = new Point(DropdownPaneStyle.SidePadding, yOffset);
             zoomOutBtn.Size = new Size(zoomButtonWidth, halfHeight);
             zoomOutBtn.Text = "−";
             zoomOutBtn.Click += ScalingZoomOut_Click;
@@ -1718,10 +1587,10 @@ namespace MeshCentralRouter
 
             // Current scaling level label (center)
             scalingLevelLabel = new Label();
-            scalingLevelLabel.Font = new Font("Segoe UI", 9F);
-            scalingLevelLabel.ForeColor = paneTextColor;
-            scalingLevelLabel.BackColor = paneBgColor;
-            scalingLevelLabel.Location = new Point(sidePadding + zoomButtonWidth + 2, yOffset);
+            scalingLevelLabel.Font = DropdownPaneStyle.ScalingLabelFont;
+            scalingLevelLabel.ForeColor = ps.PaneTextColor;
+            scalingLevelLabel.BackColor = ps.PaneBgColor;
+            scalingLevelLabel.Location = new Point(DropdownPaneStyle.SidePadding + zoomButtonWidth + 2, yOffset);
             scalingLevelLabel.Size = new Size(zoomButtonWidth, halfHeight);
             scalingLevelLabel.TextAlign = ContentAlignment.MiddleCenter;
             scalingLevelLabel.Text = FormatScalingPercent(currentScalingPercent);
@@ -1729,14 +1598,9 @@ namespace MeshCentralRouter
 
             // Zoom in button
             Button zoomInBtn = new Button();
-            zoomInBtn.FlatStyle = FlatStyle.Flat;
-            zoomInBtn.FlatAppearance.BorderSize = 1;
-            zoomInBtn.FlatAppearance.BorderColor = borderColor;
-            zoomInBtn.Font = new Font("Segoe UI", 10F, FontStyle.Bold);
-            zoomInBtn.ForeColor = paneTextColor;
-            zoomInBtn.BackColor = paneBgColor;
-            zoomInBtn.FlatAppearance.MouseOverBackColor = paneHoverColor;
-            zoomInBtn.Location = new Point(sidePadding + (zoomButtonWidth + 2) * 2, yOffset);
+            ps.ApplyFlatButtonStyle(zoomInBtn);
+            zoomInBtn.Font = DropdownPaneStyle.ZoomButtonFont;
+            zoomInBtn.Location = new Point(DropdownPaneStyle.SidePadding + (zoomButtonWidth + 2) * 2, yOffset);
             zoomInBtn.Size = new Size(zoomButtonWidth, halfHeight);
             zoomInBtn.Text = "+";
             zoomInBtn.Click += ScalingZoomIn_Click;
@@ -1754,14 +1618,9 @@ namespace MeshCentralRouter
                 double presetValue = presetValues[i];
                 bool isSelected = Math.Abs(currentScalingPercent - presetValue) < 0.01;
                 Button presetBtn = new Button();
-                presetBtn.FlatStyle = FlatStyle.Flat;
-                presetBtn.FlatAppearance.BorderSize = 1;
-                presetBtn.FlatAppearance.BorderColor = isSelected ? selectedBorderColor : borderColor;
-                presetBtn.Font = new Font("Segoe UI", 8F);
-                presetBtn.ForeColor = paneTextColor;
-                presetBtn.BackColor = isSelected ? selectedColor : paneBgColor;
-                presetBtn.FlatAppearance.MouseOverBackColor = paneHoverColor;
-                presetBtn.Location = new Point(sidePadding + i * (presetButtonWidth + 2), yOffset);
+                ps.ApplyFlatButtonStyle(presetBtn, isSelected);
+                presetBtn.Font = DropdownPaneStyle.SmallFont;
+                presetBtn.Location = new Point(DropdownPaneStyle.SidePadding + i * (presetButtonWidth + 2), yOffset);
                 presetBtn.Size = new Size(presetButtonWidth, halfHeight);
                 presetBtn.Text = FormatScalingPercent(presetValue);
                 presetBtn.Tag = presetValue;
@@ -1772,24 +1631,9 @@ namespace MeshCentralRouter
 
             yOffset += halfHeight + 4;
 
-            // Calculate pane size
-            int contentHeight = yOffset;
-            dropdownPane.Size = new Size(paneWidth, 28 + contentHeight);
-            dropdownPaneContent.Size = new Size(paneWidth - 2, contentHeight);
-
-            // Position the dropdown centered under the display button
-            int centerX = (this.Width - dropdownPane.Width) / 2;
-            int paneY = titleBarPanel.Bottom;
-            dropdownPane.Location = new Point(centerX, paneY);
-
-            // Show and bring to front
-            dropdownPane.Visible = true;
-            dropdownPane.BringToFront();
-
-            // Apply theme to the container
-            dropdownPane.BackColor = paneBgColor;
-            dropdownPaneLabel.ForeColor = paneTextColor;
-            dropdownPaneContent.BackColor = paneBgColor;
+            // Size and show the dropdown pane
+            ps.FinalizePane(dropdownPane, dropdownPaneLabel, dropdownPaneContent,
+                           yOffset, this.Width, titleBarPanel.Bottom);
         }
 
         private void FrameRateButtonGroup_SelectedValueChanged(object sender, ToggleButtonValueChangedEventArgs e)
@@ -1925,20 +1769,15 @@ namespace MeshCentralRouter
             // Update preset button states in place (no panel refresh needed)
             if (dropdownPane.Visible && dropdownPaneLabel.Text == "Display")
             {
-                ThemeManager theme = ThemeManager.Instance;
-                Color selectedColor = theme.IsDarkMode ? Color.FromArgb(70, 130, 180) : Color.FromArgb(200, 220, 240);
-                Color paneBgColor = theme.IsDarkMode ? Color.FromArgb(45, 45, 45) : Color.FromArgb(250, 250, 250);
-                Color borderColor = theme.IsDarkMode ? Color.FromArgb(80, 80, 80) : Color.FromArgb(200, 200, 200);
-                Color selectedBorderColor = theme.IsDarkMode ? Color.FromArgb(100, 149, 237) : Color.FromArgb(70, 130, 180);
-
+                var ps = new DropdownPaneStyle();
                 foreach (Button btn in scalingPresetButtons)
                 {
                     if (btn.Tag != null)
                     {
                         double presetValue = Convert.ToDouble(btn.Tag);
                         bool isSelected = (Math.Abs(currentScalingPercent - presetValue) < 0.01);
-                        btn.BackColor = isSelected ? selectedColor : paneBgColor;
-                        btn.FlatAppearance.BorderColor = isSelected ? selectedBorderColor : borderColor;
+                        btn.BackColor = isSelected ? ps.SelectedColor : ps.PaneBgColor;
+                        btn.FlatAppearance.BorderColor = isSelected ? ps.SelectedBorderColor : ps.BorderColor;
                     }
                 }
             }
@@ -1962,120 +1801,69 @@ namespace MeshCentralRouter
             // Clear existing content
             dropdownPaneContent.Controls.Clear();
 
-            ThemeManager theme = ThemeManager.Instance;
-            Color paneBgColor = theme.IsDarkMode ? Color.FromArgb(45, 45, 45) : Color.FromArgb(250, 250, 250);
-            Color paneTextColor = theme.IsDarkMode ? Color.White : Color.Black;
-            Color paneHoverColor = theme.IsDarkMode ? Color.FromArgb(60, 60, 60) : Color.FromArgb(230, 230, 230);
-            Color borderColor = theme.IsDarkMode ? Color.FromArgb(80, 80, 80) : Color.FromArgb(200, 200, 200);
-
-            int yOffset = 4;
-            int sectionHeaderHeight = 36;
-            int itemHeight = sectionHeaderHeight * 2;
-            int paneWidth = 365;
-            int sidePadding = 8;
+            var ps = new DropdownPaneStyle();
+            int yOffset = DropdownPaneStyle.ContentTopPadding;
 
             // === Actions Section ===
-            Label actionsHeader = new Label();
-            actionsHeader.Text = "Actions";
-            actionsHeader.Font = new Font("Segoe UI", 10F, FontStyle.Bold);
-            actionsHeader.ForeColor = paneTextColor;
-            actionsHeader.Location = new Point(sidePadding, yOffset);
-            actionsHeader.Size = new Size(paneWidth - (sidePadding * 2), sectionHeaderHeight);
-            dropdownPaneContent.Controls.Add(actionsHeader);
-            yOffset += sectionHeaderHeight;
+            dropdownPaneContent.Controls.Add(ps.CreateSectionHeader("Actions", yOffset));
+            yOffset += DropdownPaneStyle.SectionHeaderHeight;
 
             // View Settings button
             Button settingsBtn = new Button();
-            settingsBtn.FlatStyle = FlatStyle.Flat;
-            settingsBtn.FlatAppearance.BorderSize = 1;
-            settingsBtn.FlatAppearance.BorderColor = borderColor;
-            settingsBtn.Font = new Font("Segoe UI", 9.5F);
-            settingsBtn.ForeColor = paneTextColor;
-            settingsBtn.BackColor = paneBgColor;
-            settingsBtn.FlatAppearance.MouseOverBackColor = paneHoverColor;
-            settingsBtn.Location = new Point(sidePadding, yOffset);
-            settingsBtn.Size = new Size(paneWidth - (sidePadding * 2), itemHeight);
+            ps.ApplyFlatButtonStyle(settingsBtn);
+            settingsBtn.Font = DropdownPaneStyle.ItemFont;
+            settingsBtn.Location = new Point(DropdownPaneStyle.SidePadding, yOffset);
+            settingsBtn.Size = new Size(DropdownPaneStyle.PaneWidth - (DropdownPaneStyle.SidePadding * 2), DropdownPaneStyle.ItemHeight);
             settingsBtn.TextAlign = ContentAlignment.MiddleLeft;
-            settingsBtn.Image = GetTintedIcon(Properties.Resources.Gear20, paneTextColor);
+            settingsBtn.Image = GetTintedIcon(Properties.Resources.Gear20, ps.PaneTextColor);
             settingsBtn.ImageAlign = ContentAlignment.MiddleLeft;
             settingsBtn.Text = "     View Settings";
             settingsBtn.Click += settingsToolStripMenuItem_Click;
             dropdownPaneContent.Controls.Add(settingsBtn);
-            yOffset += itemHeight + 8;
+            yOffset += DropdownPaneStyle.ItemHeight + 8;
 
             // === View Section ===
-            Label viewHeader = new Label();
-            viewHeader.Text = "View";
-            viewHeader.Font = new Font("Segoe UI", 10F, FontStyle.Bold);
-            viewHeader.ForeColor = paneTextColor;
-            viewHeader.Location = new Point(sidePadding, yOffset);
-            viewHeader.Size = new Size(paneWidth - (sidePadding * 2), sectionHeaderHeight);
-            dropdownPaneContent.Controls.Add(viewHeader);
-            yOffset += sectionHeaderHeight;
+            dropdownPaneContent.Controls.Add(ps.CreateSectionHeader("View", yOffset));
+            yOffset += DropdownPaneStyle.SectionHeaderHeight;
 
             // Status Bar toggle - 1 unit wide, toggle above text, bordered like Fast button
-            int statusButtonSpacing = 4;
-            int statusButtonUnitWidth = (paneWidth - (sidePadding * 2) - (statusButtonSpacing * 3)) / 4;
+            int statusButtonUnitWidth = DropdownPaneStyle.ButtonUnitWidth(DropdownPaneStyle.PaneWidth);
             Button statusBarRow = new Button();
-            statusBarRow.FlatStyle = FlatStyle.Flat;
-            statusBarRow.FlatAppearance.BorderSize = 1;
-            statusBarRow.FlatAppearance.BorderColor = borderColor;
-            statusBarRow.FlatAppearance.MouseOverBackColor = paneHoverColor;
-            statusBarRow.Location = new Point(sidePadding, yOffset);
-            statusBarRow.Size = new Size(statusButtonUnitWidth, itemHeight);
-            statusBarRow.BackColor = paneBgColor;
+            ps.ApplyFlatButtonStyle(statusBarRow);
+            statusBarRow.Location = new Point(DropdownPaneStyle.SidePadding, yOffset);
+            statusBarRow.Size = new Size(statusButtonUnitWidth, DropdownPaneStyle.ItemHeight);
             statusBarRow.Click += (s, ev) => { paneStatusBarToggleSwitch.Checked = !paneStatusBarToggleSwitch.Checked; };
 
-            // Toggle switch centered at top
+            // Toggle switch and label vertically centered
+            // Total content: toggle (16) + gap (4) + label (20) = 40, button height = 72
+            // Top padding = (72 - 40) / 2 = 16
+            int verticalPadding = (DropdownPaneStyle.ItemHeight - (16 + 4 + 20)) / 2;
             paneStatusBarToggleSwitch.Size = new Size(32, 16);
-            paneStatusBarToggleSwitch.Location = new Point((statusButtonUnitWidth - 32) / 2, 6);
+            paneStatusBarToggleSwitch.Location = new Point((statusButtonUnitWidth - 32) / 2, verticalPadding);
 
             Label statusBarLabel = new Label();
             statusBarLabel.Text = "Status Bar";
-            statusBarLabel.Font = new Font("Segoe UI", 8F);
-            statusBarLabel.ForeColor = paneTextColor;
+            statusBarLabel.Font = DropdownPaneStyle.SmallFont;
+            statusBarLabel.ForeColor = ps.PaneTextColor;
+            statusBarLabel.BackColor = Color.Transparent;
             statusBarLabel.Size = new Size(statusButtonUnitWidth, 20);
             statusBarLabel.TextAlign = ContentAlignment.MiddleCenter;
-            statusBarLabel.Location = new Point(0, 6 + 16 + 4);
+            statusBarLabel.Location = new Point(0, verticalPadding + 16 + 4);
             statusBarRow.Controls.Add(statusBarLabel);
             // Update toggle colors based on theme
-            if (theme.IsDarkMode)
-            {
-                paneStatusBarToggleSwitch.OffColor = Color.FromArgb(90, 90, 90);
-                paneStatusBarToggleSwitch.OnColor = Color.FromArgb(76, 175, 80);
-                paneStatusBarToggleSwitch.ThumbColor = Color.FromArgb(235, 235, 235);
-                paneStatusBarToggleSwitch.BackColor = paneBgColor;
-            }
-            else
-            {
-                paneStatusBarToggleSwitch.OffColor = Color.LightGray;
-                paneStatusBarToggleSwitch.OnColor = Color.FromArgb(76, 175, 80);
-                paneStatusBarToggleSwitch.ThumbColor = Color.White;
-                paneStatusBarToggleSwitch.BackColor = paneBgColor;
-            }
+            bool isDark = ThemeManager.Instance.IsDarkMode;
+            paneStatusBarToggleSwitch.OffColor = isDark ? Color.FromArgb(90, 90, 90) : Color.LightGray;
+            paneStatusBarToggleSwitch.OnColor = Color.FromArgb(76, 175, 80);
+            paneStatusBarToggleSwitch.ThumbColor = isDark ? Color.FromArgb(235, 235, 235) : Color.White;
+            paneStatusBarToggleSwitch.BackColor = ps.PaneBgColor;
             statusBarRow.Controls.Add(paneStatusBarToggleSwitch);
 
             dropdownPaneContent.Controls.Add(statusBarRow);
-            yOffset += itemHeight + 4;
+            yOffset += DropdownPaneStyle.ItemHeight + 4;
 
-            // Calculate pane size
-            int contentHeight = yOffset;
-            dropdownPane.Size = new Size(paneWidth, 28 + contentHeight);
-            dropdownPaneContent.Size = new Size(paneWidth - 2, contentHeight);
-
-            // Position the dropdown centered under the gear button
-            int centerX = (this.Width - dropdownPane.Width) / 2;
-            int paneY = titleBarPanel.Bottom;
-            dropdownPane.Location = new Point(centerX, paneY);
-
-            // Show and bring to front
-            dropdownPane.Visible = true;
-            dropdownPane.BringToFront();
-
-            // Apply theme to the container
-            dropdownPane.BackColor = paneBgColor;
-            dropdownPaneLabel.ForeColor = paneTextColor;
-            dropdownPaneContent.BackColor = paneBgColor;
+            // Size and show the dropdown pane
+            ps.FinalizePane(dropdownPane, dropdownPaneLabel, dropdownPaneContent,
+                           yOffset, this.Width, titleBarPanel.Bottom);
         }
 
         private void ShowDropdownPane(string title, params Control[] contentControls)
@@ -2130,31 +1918,21 @@ namespace MeshCentralRouter
             // Clear existing content
             dropdownPaneContent.Controls.Clear();
 
-            ThemeManager theme = ThemeManager.Instance;
-            Color paneBgColor = theme.IsDarkMode ? Color.FromArgb(45, 45, 45) : Color.FromArgb(250, 250, 250);
-            Color paneTextColor = theme.IsDarkMode ? Color.White : Color.Black;
-            Color sectionHeaderColor = theme.IsDarkMode ? Color.FromArgb(180, 180, 180) : Color.FromArgb(100, 100, 100);
-            Color paneHoverColor = theme.IsDarkMode ? Color.FromArgb(60, 60, 60) : Color.FromArgb(230, 230, 230);
-            Color selectedColor = theme.IsDarkMode ? Color.FromArgb(70, 130, 180) : Color.FromArgb(200, 220, 240);
-
+            var ps = new DropdownPaneStyle();
             int yOffset = 0;
-            int sectionHeaderHeight = 36;
-            int itemHeight = sectionHeaderHeight * 2;
-            int sectionSpacing = 8;
-            int paneWidth = 365;
 
             foreach (var section in sections)
             {
                 // Add section header
                 Panel sectionHeader = new Panel();
                 sectionHeader.Location = new Point(0, yOffset);
-                sectionHeader.Size = new Size(paneWidth - 2, sectionHeaderHeight);
+                sectionHeader.Size = new Size(DropdownPaneStyle.PaneWidth - 2, DropdownPaneStyle.SectionHeaderHeight);
                 sectionHeader.BackColor = Color.Transparent;
 
                 Label sectionLabel = new Label();
                 sectionLabel.Text = section.Title;
-                sectionLabel.Font = new Font("Segoe UI", 10F, FontStyle.Bold);
-                sectionLabel.ForeColor = sectionHeaderColor;
+                sectionLabel.Font = DropdownPaneStyle.SectionHeaderFont;
+                sectionLabel.ForeColor = ps.LabelColor;
                 sectionLabel.Location = new Point(8, 4);
                 sectionLabel.AutoSize = true;
                 sectionHeader.Controls.Add(sectionLabel);
@@ -2164,34 +1942,30 @@ namespace MeshCentralRouter
                 {
                     Label infoLabel = new Label();
                     infoLabel.Text = section.InfoIcon;
-                    infoLabel.Font = new Font("Segoe UI", 8F);
-                    infoLabel.ForeColor = sectionHeaderColor;
+                    infoLabel.Font = DropdownPaneStyle.SmallFont;
+                    infoLabel.ForeColor = ps.LabelColor;
                     infoLabel.AutoSize = true;
-                    infoLabel.Location = new Point(paneWidth - 25, 4);
+                    infoLabel.Location = new Point(DropdownPaneStyle.PaneWidth - 25, 4);
                     sectionHeader.Controls.Add(infoLabel);
                 }
 
                 dropdownPaneContent.Controls.Add(sectionHeader);
-                yOffset += sectionHeaderHeight;
+                yOffset += DropdownPaneStyle.SectionHeaderHeight;
 
                 // Add items in a row layout for this section
                 int itemsPerRow = section.Items.Count <= 4 ? section.Items.Count : 4;
-                int itemWidth = (paneWidth - 16) / itemsPerRow;
+                int itemWidth = (DropdownPaneStyle.PaneWidth - 16) / itemsPerRow;
                 int xOffset = 4;
                 int itemsInCurrentRow = 0;
 
                 foreach (var item in section.Items)
                 {
                     Button itemButton = new Button();
-                    itemButton.FlatStyle = FlatStyle.Flat;
+                    ps.ApplyFlatButtonStyle(itemButton, item.IsSelected);
                     itemButton.FlatAppearance.BorderSize = item.IsSelected ? 1 : 0;
-                    itemButton.FlatAppearance.BorderColor = theme.IsDarkMode ? Color.FromArgb(100, 149, 237) : Color.FromArgb(70, 130, 180);
-                    itemButton.Font = new Font("Segoe UI", 9.5F);
-                    itemButton.ForeColor = paneTextColor;
-                    itemButton.BackColor = item.IsSelected ? selectedColor : paneBgColor;
-                    itemButton.FlatAppearance.MouseOverBackColor = paneHoverColor;
+                    itemButton.Font = DropdownPaneStyle.ItemFont;
                     itemButton.Location = new Point(xOffset, yOffset);
-                    itemButton.Size = new Size(itemWidth, itemHeight);
+                    itemButton.Size = new Size(itemWidth, DropdownPaneStyle.ItemHeight);
                     itemButton.TextAlign = ContentAlignment.MiddleCenter;
                     itemButton.Tag = item.Tag;
 
@@ -2218,7 +1992,7 @@ namespace MeshCentralRouter
                     if (itemsInCurrentRow >= itemsPerRow)
                     {
                         xOffset = 4;
-                        yOffset += itemHeight + 2;
+                        yOffset += DropdownPaneStyle.ItemHeight + 2;
                         itemsInCurrentRow = 0;
                     }
                 }
@@ -2226,30 +2000,15 @@ namespace MeshCentralRouter
                 // If we didn't complete a row, move to next line
                 if (itemsInCurrentRow > 0)
                 {
-                    yOffset += itemHeight + 2;
+                    yOffset += DropdownPaneStyle.ItemHeight + 2;
                 }
 
-                yOffset += sectionSpacing;
+                yOffset += DropdownPaneStyle.SectionSpacing;
             }
 
-            // Calculate pane size
-            int contentHeight = yOffset;
-            dropdownPane.Size = new Size(paneWidth, 28 + contentHeight);
-            dropdownPaneContent.Size = new Size(paneWidth - 2, contentHeight);
-
-            // Position the dropdown centered under the center panel area
-            int centerX = (this.Width - dropdownPane.Width) / 2;
-            int paneY = titleBarPanel.Bottom;
-            dropdownPane.Location = new Point(centerX, paneY);
-
-            // Show and bring to front
-            dropdownPane.Visible = true;
-            dropdownPane.BringToFront();
-
-            // Apply theme to the container
-            dropdownPane.BackColor = paneBgColor;
-            dropdownPaneLabel.ForeColor = paneTextColor;
-            dropdownPaneContent.BackColor = paneBgColor;
+            // Size and show the dropdown pane
+            ps.FinalizePane(dropdownPane, dropdownPaneLabel, dropdownPaneContent,
+                           yOffset, this.Width, titleBarPanel.Bottom);
         }
 
         /// <summary>
@@ -2270,20 +2029,10 @@ namespace MeshCentralRouter
             // Clear existing content
             dropdownPaneContent.Controls.Clear();
 
-            ThemeManager theme = ThemeManager.Instance;
-            Color paneBgColor = theme.IsDarkMode ? Color.FromArgb(45, 45, 45) : Color.FromArgb(250, 250, 250);
-            Color paneTextColor = theme.IsDarkMode ? Color.White : Color.Black;
-            Color sectionHeaderColor = theme.IsDarkMode ? Color.FromArgb(180, 180, 180) : Color.FromArgb(100, 100, 100);
-            Color paneHoverColor = theme.IsDarkMode ? Color.FromArgb(60, 60, 60) : Color.FromArgb(230, 230, 230);
-            Color selectedColor = theme.IsDarkMode ? Color.FromArgb(70, 130, 180) : Color.FromArgb(200, 220, 240);
-
-            int sectionHeaderHeight = 36;
-            int itemHeight = sectionHeaderHeight * 2;
-            int sectionSpacing = 8;
-            int groupSpacing = 8;
+            var ps = new DropdownPaneStyle();
 
             // Calculate pane dimensions based on layout
-            int paneWidth = Math.Max(365, layout.ColumnsPerPane * 130 + (layout.ColumnsPerPane - 1) * groupSpacing + 8);
+            int paneWidth = ps.CalculateGridPaneWidth(layout);
             int groupWidth = layout.CalculateGroupWidth(paneWidth);
 
             // Track row heights for proper grid placement
@@ -2300,9 +2049,9 @@ namespace MeshCentralRouter
                 if (row >= layout.RowsPerPane) break; // Exceeded max rows
 
                 // Calculate group position
-                int groupX = 4 + col * (groupWidth + groupSpacing);
+                int groupX = 4 + col * (groupWidth + DropdownPaneStyle.GroupSpacing);
                 int groupY = 0;
-                for (int r = 0; r < row; r++) groupY += rowHeights[r] + groupSpacing;
+                for (int r = 0; r < row; r++) groupY += rowHeights[r] + DropdownPaneStyle.GroupSpacing;
 
                 int yOffsetInGroup = 0;
 
@@ -2314,13 +2063,13 @@ namespace MeshCentralRouter
                     {
                         Panel sectionHeader = new Panel();
                         sectionHeader.Location = new Point(groupX, groupY + yOffsetInGroup);
-                        sectionHeader.Size = new Size(groupWidth, sectionHeaderHeight);
+                        sectionHeader.Size = new Size(groupWidth, DropdownPaneStyle.SectionHeaderHeight);
                         sectionHeader.BackColor = Color.Transparent;
 
                         Label sectionLabel = new Label();
                         sectionLabel.Text = section.Title;
-                        sectionLabel.Font = new Font("Segoe UI", 10F, FontStyle.Bold);
-                        sectionLabel.ForeColor = sectionHeaderColor;
+                        sectionLabel.Font = DropdownPaneStyle.SectionHeaderFont;
+                        sectionLabel.ForeColor = ps.LabelColor;
                         sectionLabel.Location = new Point(4, 4);
                         sectionLabel.AutoSize = true;
                         sectionHeader.Controls.Add(sectionLabel);
@@ -2330,15 +2079,15 @@ namespace MeshCentralRouter
                         {
                             Label infoLabel = new Label();
                             infoLabel.Text = section.InfoIcon;
-                            infoLabel.Font = new Font("Segoe UI", 8F);
-                            infoLabel.ForeColor = sectionHeaderColor;
+                            infoLabel.Font = DropdownPaneStyle.SmallFont;
+                            infoLabel.ForeColor = ps.LabelColor;
                             infoLabel.AutoSize = true;
                             infoLabel.Location = new Point(groupWidth - 20, 4);
                             sectionHeader.Controls.Add(infoLabel);
                         }
 
                         dropdownPaneContent.Controls.Add(sectionHeader);
-                        yOffsetInGroup += sectionHeaderHeight;
+                        yOffsetInGroup += DropdownPaneStyle.SectionHeaderHeight;
                     }
 
                     // Add items in rows based on layout configuration
@@ -2350,17 +2099,10 @@ namespace MeshCentralRouter
                     foreach (var item in section.Items)
                     {
                         Button itemButton = new Button();
-                        itemButton.FlatStyle = FlatStyle.Flat;
-                        itemButton.FlatAppearance.BorderSize = 1; // Always show border for bounding box
-                        itemButton.FlatAppearance.BorderColor = item.IsSelected ?
-                            (theme.IsDarkMode ? Color.FromArgb(100, 149, 237) : Color.FromArgb(70, 130, 180)) :
-                            (theme.IsDarkMode ? Color.FromArgb(80, 80, 80) : Color.FromArgb(200, 200, 200));
-                        itemButton.Font = new Font("Segoe UI", 9.5F);
-                        itemButton.ForeColor = paneTextColor;
-                        itemButton.BackColor = item.IsSelected ? selectedColor : paneBgColor;
-                        itemButton.FlatAppearance.MouseOverBackColor = paneHoverColor;
+                        ps.ApplyFlatButtonStyle(itemButton, item.IsSelected);
+                        itemButton.Font = DropdownPaneStyle.ItemFont;
                         itemButton.Location = new Point(groupX + xOffsetInGroup, groupY + yOffsetInGroup);
-                        itemButton.Size = new Size(itemWidth, itemHeight);
+                        itemButton.Size = new Size(itemWidth, DropdownPaneStyle.ItemHeight);
                         itemButton.TextAlign = ContentAlignment.MiddleLeft;
                         itemButton.TextImageRelation = TextImageRelation.ImageBeforeText;
                         itemButton.Tag = item.Tag;
@@ -2409,7 +2151,7 @@ namespace MeshCentralRouter
                         if (itemsInCurrentRow >= itemsPerRow)
                         {
                             xOffsetInGroup = 4;
-                            yOffsetInGroup += itemHeight + 2;
+                            yOffsetInGroup += DropdownPaneStyle.ItemHeight + 2;
                             itemsInCurrentRow = 0;
                         }
                     }
@@ -2417,10 +2159,10 @@ namespace MeshCentralRouter
                     // If we didn't complete a row, move to next line
                     if (itemsInCurrentRow > 0)
                     {
-                        yOffsetInGroup += itemHeight + 2;
+                        yOffsetInGroup += DropdownPaneStyle.ItemHeight + 2;
                     }
 
-                    yOffsetInGroup += sectionSpacing;
+                    yOffsetInGroup += DropdownPaneStyle.SectionSpacing;
                 }
 
                 // Update the row height for this group
@@ -2435,25 +2177,12 @@ namespace MeshCentralRouter
             for (int r = 0; r < layout.RowsPerPane; r++)
             {
                 contentHeight += rowHeights[r];
-                if (r < layout.RowsPerPane - 1) contentHeight += groupSpacing;
+                if (r < layout.RowsPerPane - 1) contentHeight += DropdownPaneStyle.GroupSpacing;
             }
 
-            dropdownPane.Size = new Size(paneWidth, 28 + contentHeight);
-            dropdownPaneContent.Size = new Size(paneWidth - 2, contentHeight);
-
-            // Position the dropdown centered under the center panel area
-            int centerX = (this.Width - dropdownPane.Width) / 2;
-            int paneY = titleBarPanel.Bottom;
-            dropdownPane.Location = new Point(centerX, paneY);
-
-            // Show and bring to front
-            dropdownPane.Visible = true;
-            dropdownPane.BringToFront();
-
-            // Apply theme to the container
-            dropdownPane.BackColor = paneBgColor;
-            dropdownPaneLabel.ForeColor = paneTextColor;
-            dropdownPaneContent.BackColor = paneBgColor;
+            // Size and show the dropdown pane
+            ps.FinalizePane(dropdownPane, dropdownPaneLabel, dropdownPaneContent,
+                           contentHeight, this.Width, titleBarPanel.Bottom, paneWidth);
         }
 
         private void HideDropdownPane()
@@ -2614,26 +2343,21 @@ namespace MeshCentralRouter
 
         private void UpdateDropdownPaneTheme()
         {
-            ThemeManager theme = ThemeManager.Instance;
-            Color paneBgColor = theme.IsDarkMode ? Color.FromArgb(45, 45, 45) : Color.FromArgb(250, 250, 250);
-            Color paneTextColor = theme.IsDarkMode ? Color.White : Color.Black;
-            Color paneHoverColor = theme.IsDarkMode ? Color.FromArgb(60, 60, 60) : Color.FromArgb(230, 230, 230);
+            var ps = new DropdownPaneStyle();
 
             // Update dropdown pane container
-            dropdownPane.BackColor = paneBgColor;
-            dropdownPaneLabel.ForeColor = paneTextColor;
-            dropdownPaneContent.BackColor = paneBgColor;
+            ps.ApplyPaneTheme(dropdownPane, dropdownPaneLabel, dropdownPaneContent);
 
             // Update settings pane buttons with theme-aware tinted icons
-            settingsPaneSettingsButton.BackColor = paneBgColor;
-            settingsPaneSettingsButton.ForeColor = paneTextColor;
-            settingsPaneSettingsButton.Image = GetTintedIcon(Properties.Resources.Gear20, paneTextColor);
-            settingsPaneSettingsButton.FlatAppearance.MouseOverBackColor = paneHoverColor;
-            
-            settingsPaneStatsButton.BackColor = paneBgColor;
-            settingsPaneStatsButton.ForeColor = paneTextColor;
-            settingsPaneStatsButton.Image = GetTintedIcon(Properties.Resources.Statistics20, paneTextColor);
-            settingsPaneStatsButton.FlatAppearance.MouseOverBackColor = paneHoverColor;
+            settingsPaneSettingsButton.BackColor = ps.PaneBgColor;
+            settingsPaneSettingsButton.ForeColor = ps.PaneTextColor;
+            settingsPaneSettingsButton.Image = GetTintedIcon(Properties.Resources.Gear20, ps.PaneTextColor);
+            settingsPaneSettingsButton.FlatAppearance.MouseOverBackColor = ps.PaneHoverColor;
+
+            settingsPaneStatsButton.BackColor = ps.PaneBgColor;
+            settingsPaneStatsButton.ForeColor = ps.PaneTextColor;
+            settingsPaneStatsButton.Image = GetTintedIcon(Properties.Resources.Statistics20, ps.PaneTextColor);
+            settingsPaneStatsButton.FlatAppearance.MouseOverBackColor = ps.PaneHoverColor;
         }
 
         /* ===== USAGE EXAMPLE FOR GRID-BASED DROPDOWN PANE =====

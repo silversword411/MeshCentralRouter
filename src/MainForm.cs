@@ -3252,6 +3252,7 @@ namespace MeshCentralRouter
                     c.BackColor = bgColor;
                     c.ForeColor = fgColor;
                     ApplyThemeToControlWithColor(c, bgColor, fgColor);
+                    ((DeviceUserControl)c).ApplyThemeToContextMenus();
                 }
             }
             
@@ -3280,13 +3281,20 @@ namespace MeshCentralRouter
             // Hide column headers in dark mode (they can't be themed and appear white)
             devicesListView.HeaderStyle = theme.IsDarkMode ? ColumnHeaderStyle.None : ColumnHeaderStyle.Nonclickable;
 
-            // Update context menus
+            // Update context menus with custom renderer for proper dark mode support
+            ToolStripRenderer menuRenderer = theme.GetContextMenuRenderer();
+            mainContextMenuStrip.Renderer = menuRenderer;
             mainContextMenuStrip.BackColor = bgColor;
             mainContextMenuStrip.ForeColor = fgColor;
+            devicesContextMenuStrip.Renderer = menuRenderer;
             devicesContextMenuStrip.BackColor = bgColor;
             devicesContextMenuStrip.ForeColor = fgColor;
+            mappingsContextMenuStrip.Renderer = menuRenderer;
             mappingsContextMenuStrip.BackColor = bgColor;
             mappingsContextMenuStrip.ForeColor = fgColor;
+            trayIconContextMenuStrip.Renderer = menuRenderer;
+            trayIconContextMenuStrip.BackColor = bgColor;
+            trayIconContextMenuStrip.ForeColor = fgColor;
         }
 
         private void ApplyThemeToControl(Control parent, Color bgColor, Color fgColor)

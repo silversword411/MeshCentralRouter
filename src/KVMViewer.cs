@@ -103,6 +103,10 @@ namespace MeshCentralRouter
         // Frame rate panel toggle button group
         private ToggleButtonGroup frameRateButtonGroup;
 
+        // Quality (compression) controls
+        private Label qualityLevelLabel;
+        private int currentQualityPercent = 60; // Current quality percentage (20-100, steps of 20)
+
         // Display scaling controls
         private Label scalingLevelLabel;
         private double currentScalingPercent = 100; // Current display zoom percentage (12.5-200)
@@ -132,6 +136,9 @@ namespace MeshCentralRouter
             kvmControl.parent = this;
             kvmControl.DesktopSizeChanged += KvmControl_DesktopSizeChanged;
             kvmControl.ScreenAreaUpdated += KvmControl_ScreenAreaUpdated;
+            kvmControl.MouseDown += KvmControl_MouseDown_ClosePane;
+            resizeKvmControl.MouseDown += KvmControl_MouseDown_ClosePane;
+            mainStatusStrip.MouseDown += KvmControl_MouseDown_ClosePane;
             resizeKvmControl.ZoomToFit = true;
             UpdateStatus();
             this.MouseWheel += MainForm_MouseWheel;
@@ -173,6 +180,18 @@ namespace MeshCentralRouter
             bool statusBarVisible = Settings.GetRegValue("kvmStatusBarVisible", "1").Equals("1");
             mainStatusStrip.Visible = statusBarVisible;
             paneStatusBarToggleSwitch.Checked = statusBarVisible;
+
+            // Load auto reconnect preference and sync toggle
+            paneAutoReconnectToggleSwitch.Checked = kvmControl.AutoReconnect;
+
+            // Load swap mouse buttons preference and sync toggle
+            paneSwapMouseToggleSwitch.Checked = kvmControl.SwamMouseButtons;
+
+            // Load remote keyboard map preference and sync toggle
+            paneRemoteKeyMapToggleSwitch.Checked = kvmControl.RemoteKeyboardMap;
+
+            // Load auto send clipboard preference and sync toggle
+            paneSyncClipboardToggleSwitch.Checked = kvmControl.AutoSendClipboard;
 
             // Load display scaling preference
             try { currentScalingPercent = double.Parse(Settings.GetRegValue("kvmDisplayScaling", "100")); } catch (Exception) { currentScalingPercent = 100; }
@@ -940,6 +959,11 @@ namespace MeshCentralRouter
         private void KVMViewer_Deactivate(object sender, EventArgs e)
         {
             kvmControl.DetacheKeyboard();
+            // Auto-close dropdown pane when form loses focus
+            if (dropdownPane.Visible)
+            {
+                HideDropdownPane();
+            }
         }
 
         private void KVMViewer_Activated(object sender, EventArgs e)
@@ -1566,6 +1590,52 @@ namespace MeshCentralRouter
             dropdownPaneContent.Controls.Add(frameRateButtonGroup);
             yOffset += DropdownPaneStyle.ItemHeight + 8;
 
+            // Quality section header
+            dropdownPaneContent.Controls.Add(ps.CreateSectionHeader("Quality", yOffset));
+            yOffset += DropdownPaneStyle.SectionHeaderHeight;
+
+            // Quality uses 1 unit wide, 2 half rows like scaling
+            int qualityHalfHeight = DropdownPaneStyle.SectionHeaderHeight;
+            int qualityRowWidth = DropdownPaneStyle.ButtonUnitWidth(DropdownPaneStyle.PaneWidth);
+            int qualityButtonWidth = (qualityRowWidth - 2) / 2; // 2 buttons with small gap
+
+            // Sync currentQualityPercent with kvmControl
+            currentQualityPercent = kvmControl.CompressionLevel;
+
+            // First row: Quality percentage label (full width of 1 unit)
+            qualityLevelLabel = new Label();
+            qualityLevelLabel.Font = DropdownPaneStyle.ScalingLabelFont;
+            qualityLevelLabel.ForeColor = ps.PaneTextColor;
+            qualityLevelLabel.BackColor = ps.PaneBgColor;
+            qualityLevelLabel.Location = new Point(DropdownPaneStyle.SidePadding, yOffset);
+            qualityLevelLabel.Size = new Size(qualityRowWidth, qualityHalfHeight);
+            qualityLevelLabel.TextAlign = ContentAlignment.MiddleCenter;
+            qualityLevelLabel.Text = currentQualityPercent.ToString() + "%";
+            dropdownPaneContent.Controls.Add(qualityLevelLabel);
+
+            yOffset += qualityHalfHeight + 2;
+
+            // Second row: − button | + button
+            Button qualityDownBtn = new Button();
+            ps.ApplyFlatButtonStyle(qualityDownBtn);
+            qualityDownBtn.Font = DropdownPaneStyle.ZoomButtonFont;
+            qualityDownBtn.Location = new Point(DropdownPaneStyle.SidePadding, yOffset);
+            qualityDownBtn.Size = new Size(qualityButtonWidth, qualityHalfHeight);
+            qualityDownBtn.Text = "−";
+            qualityDownBtn.Click += QualityDown_Click;
+            dropdownPaneContent.Controls.Add(qualityDownBtn);
+
+            Button qualityUpBtn = new Button();
+            ps.ApplyFlatButtonStyle(qualityUpBtn);
+            qualityUpBtn.Font = DropdownPaneStyle.ZoomButtonFont;
+            qualityUpBtn.Location = new Point(DropdownPaneStyle.SidePadding + qualityButtonWidth + 2, yOffset);
+            qualityUpBtn.Size = new Size(qualityButtonWidth, qualityHalfHeight);
+            qualityUpBtn.Text = "+";
+            qualityUpBtn.Click += QualityUp_Click;
+            dropdownPaneContent.Controls.Add(qualityUpBtn);
+
+            yOffset += qualityHalfHeight + 8;
+
             // Scaling section header
             dropdownPaneContent.Controls.Add(ps.CreateSectionHeader("Scaling", yOffset));
             yOffset += DropdownPaneStyle.SectionHeaderHeight;
@@ -1645,6 +1715,39 @@ namespace MeshCentralRouter
 
             // Save to registry
             Settings.SetRegValue("kvmFrameRate", frameRateValue.ToString());
+        }
+
+        private void QualityDown_Click(object sender, EventArgs e)
+        {
+            // Decrease by 20% (minimum 20%)
+            int newValue = currentQualityPercent - 20;
+            if (newValue < 20) newValue = 20;
+            ApplyQuality(newValue);
+        }
+
+        private void QualityUp_Click(object sender, EventArgs e)
+        {
+            // Increase by 20% (maximum 100%)
+            int newValue = currentQualityPercent + 20;
+            if (newValue > 100) newValue = 100;
+            ApplyQuality(newValue);
+        }
+
+        private void ApplyQuality(int qualityPercent)
+        {
+            currentQualityPercent = qualityPercent;
+
+            // Apply the new quality (compression level)
+            kvmControl.SetCompressionParams(qualityPercent, kvmControl.ScalingLevel, kvmControl.FrameRate);
+
+            // Update the label if it exists
+            if (qualityLevelLabel != null)
+            {
+                qualityLevelLabel.Text = currentQualityPercent.ToString() + "%";
+            }
+
+            // Save to registry
+            Settings.SetRegValue("kvmCompression", qualityPercent.ToString());
         }
 
         private void DisplayPaneButton_Click(object sender, EventArgs e)
@@ -1804,28 +1907,6 @@ namespace MeshCentralRouter
             var ps = new DropdownPaneStyle();
             int yOffset = DropdownPaneStyle.ContentTopPadding;
 
-            // === Actions Section ===
-            dropdownPaneContent.Controls.Add(ps.CreateSectionHeader("Actions", yOffset));
-            yOffset += DropdownPaneStyle.SectionHeaderHeight;
-
-            // View Settings button
-            Button settingsBtn = new Button();
-            ps.ApplyFlatButtonStyle(settingsBtn);
-            settingsBtn.Font = DropdownPaneStyle.ItemFont;
-            settingsBtn.Location = new Point(DropdownPaneStyle.SidePadding, yOffset);
-            settingsBtn.Size = new Size(DropdownPaneStyle.PaneWidth - (DropdownPaneStyle.SidePadding * 2), DropdownPaneStyle.ItemHeight);
-            settingsBtn.TextAlign = ContentAlignment.MiddleLeft;
-            settingsBtn.Image = GetTintedIcon(Properties.Resources.Gear20, ps.PaneTextColor);
-            settingsBtn.ImageAlign = ContentAlignment.MiddleLeft;
-            settingsBtn.Text = "     View Settings";
-            settingsBtn.Click += settingsToolStripMenuItem_Click;
-            dropdownPaneContent.Controls.Add(settingsBtn);
-            yOffset += DropdownPaneStyle.ItemHeight + 8;
-
-            // === View Section ===
-            dropdownPaneContent.Controls.Add(ps.CreateSectionHeader("View", yOffset));
-            yOffset += DropdownPaneStyle.SectionHeaderHeight;
-
             // Status Bar toggle - 1 unit wide, toggle above text, bordered like Fast button
             int statusButtonUnitWidth = DropdownPaneStyle.ButtonUnitWidth(DropdownPaneStyle.PaneWidth);
             Button statusBarRow = new Button();
@@ -1859,6 +1940,124 @@ namespace MeshCentralRouter
             statusBarRow.Controls.Add(paneStatusBarToggleSwitch);
 
             dropdownPaneContent.Controls.Add(statusBarRow);
+
+            // Auto Reconnect toggle - next to Status Bar toggle
+            Button autoReconnectRow = new Button();
+            ps.ApplyFlatButtonStyle(autoReconnectRow);
+            autoReconnectRow.Location = new Point(DropdownPaneStyle.SidePadding + statusButtonUnitWidth + 4, yOffset);
+            autoReconnectRow.Size = new Size(statusButtonUnitWidth, DropdownPaneStyle.ItemHeight);
+            autoReconnectRow.Click += (s, ev) => { paneAutoReconnectToggleSwitch.Checked = !paneAutoReconnectToggleSwitch.Checked; };
+
+            paneAutoReconnectToggleSwitch.Size = new Size(32, 16);
+            paneAutoReconnectToggleSwitch.Location = new Point((statusButtonUnitWidth - 32) / 2, verticalPadding);
+
+            // Use word-wrapped label for "Auto Reconnect"
+            int labelHeight = 32; // Two lines of text
+            int autoReconnectVerticalPadding = (DropdownPaneStyle.ItemHeight - (16 + 4 + labelHeight)) / 2;
+            paneAutoReconnectToggleSwitch.Location = new Point((statusButtonUnitWidth - 32) / 2, autoReconnectVerticalPadding);
+
+            Label autoReconnectLabel = new Label();
+            autoReconnectLabel.Text = "Auto\nReconnect";
+            autoReconnectLabel.Font = DropdownPaneStyle.SmallFont;
+            autoReconnectLabel.ForeColor = ps.PaneTextColor;
+            autoReconnectLabel.BackColor = Color.Transparent;
+            autoReconnectLabel.Size = new Size(statusButtonUnitWidth, labelHeight);
+            autoReconnectLabel.TextAlign = ContentAlignment.MiddleCenter;
+            autoReconnectLabel.Location = new Point(0, autoReconnectVerticalPadding + 16 + 4);
+            autoReconnectRow.Controls.Add(autoReconnectLabel);
+
+            paneAutoReconnectToggleSwitch.OffColor = isDark ? Color.FromArgb(90, 90, 90) : Color.LightGray;
+            paneAutoReconnectToggleSwitch.OnColor = Color.FromArgb(76, 175, 80);
+            paneAutoReconnectToggleSwitch.ThumbColor = isDark ? Color.FromArgb(235, 235, 235) : Color.White;
+            paneAutoReconnectToggleSwitch.BackColor = ps.PaneBgColor;
+            autoReconnectRow.Controls.Add(paneAutoReconnectToggleSwitch);
+
+            dropdownPaneContent.Controls.Add(autoReconnectRow);
+
+            // Swap Mouse toggle - next to Auto Reconnect toggle
+            Button swapMouseRow = new Button();
+            ps.ApplyFlatButtonStyle(swapMouseRow);
+            swapMouseRow.Location = new Point(DropdownPaneStyle.SidePadding + (statusButtonUnitWidth + 4) * 2, yOffset);
+            swapMouseRow.Size = new Size(statusButtonUnitWidth, DropdownPaneStyle.ItemHeight);
+            swapMouseRow.Click += (s, ev) => { paneSwapMouseToggleSwitch.Checked = !paneSwapMouseToggleSwitch.Checked; };
+
+            paneSwapMouseToggleSwitch.Size = new Size(32, 16);
+            paneSwapMouseToggleSwitch.Location = new Point((statusButtonUnitWidth - 32) / 2, autoReconnectVerticalPadding);
+
+            Label swapMouseLabel = new Label();
+            swapMouseLabel.Text = "Swap\nMouse";
+            swapMouseLabel.Font = DropdownPaneStyle.SmallFont;
+            swapMouseLabel.ForeColor = ps.PaneTextColor;
+            swapMouseLabel.BackColor = Color.Transparent;
+            swapMouseLabel.Size = new Size(statusButtonUnitWidth, labelHeight);
+            swapMouseLabel.TextAlign = ContentAlignment.MiddleCenter;
+            swapMouseLabel.Location = new Point(0, autoReconnectVerticalPadding + 16 + 4);
+            swapMouseRow.Controls.Add(swapMouseLabel);
+
+            paneSwapMouseToggleSwitch.OffColor = isDark ? Color.FromArgb(90, 90, 90) : Color.LightGray;
+            paneSwapMouseToggleSwitch.OnColor = Color.FromArgb(76, 175, 80);
+            paneSwapMouseToggleSwitch.ThumbColor = isDark ? Color.FromArgb(235, 235, 235) : Color.White;
+            paneSwapMouseToggleSwitch.BackColor = ps.PaneBgColor;
+            swapMouseRow.Controls.Add(paneSwapMouseToggleSwitch);
+
+            dropdownPaneContent.Controls.Add(swapMouseRow);
+
+            // Remote Key Map toggle - next to Swap Mouse toggle
+            Button remoteKeyMapRow = new Button();
+            ps.ApplyFlatButtonStyle(remoteKeyMapRow);
+            remoteKeyMapRow.Location = new Point(DropdownPaneStyle.SidePadding + (statusButtonUnitWidth + 4) * 3, yOffset);
+            remoteKeyMapRow.Size = new Size(statusButtonUnitWidth, DropdownPaneStyle.ItemHeight);
+            remoteKeyMapRow.Click += (s, ev) => { paneRemoteKeyMapToggleSwitch.Checked = !paneRemoteKeyMapToggleSwitch.Checked; };
+
+            paneRemoteKeyMapToggleSwitch.Size = new Size(32, 16);
+            paneRemoteKeyMapToggleSwitch.Location = new Point((statusButtonUnitWidth - 32) / 2, autoReconnectVerticalPadding);
+
+            Label remoteKeyMapLabel = new Label();
+            remoteKeyMapLabel.Text = "Remote\nKey Map";
+            remoteKeyMapLabel.Font = DropdownPaneStyle.SmallFont;
+            remoteKeyMapLabel.ForeColor = ps.PaneTextColor;
+            remoteKeyMapLabel.BackColor = Color.Transparent;
+            remoteKeyMapLabel.Size = new Size(statusButtonUnitWidth, labelHeight);
+            remoteKeyMapLabel.TextAlign = ContentAlignment.MiddleCenter;
+            remoteKeyMapLabel.Location = new Point(0, autoReconnectVerticalPadding + 16 + 4);
+            remoteKeyMapRow.Controls.Add(remoteKeyMapLabel);
+
+            paneRemoteKeyMapToggleSwitch.OffColor = isDark ? Color.FromArgb(90, 90, 90) : Color.LightGray;
+            paneRemoteKeyMapToggleSwitch.OnColor = Color.FromArgb(76, 175, 80);
+            paneRemoteKeyMapToggleSwitch.ThumbColor = isDark ? Color.FromArgb(235, 235, 235) : Color.White;
+            paneRemoteKeyMapToggleSwitch.BackColor = ps.PaneBgColor;
+            remoteKeyMapRow.Controls.Add(paneRemoteKeyMapToggleSwitch);
+
+            dropdownPaneContent.Controls.Add(remoteKeyMapRow);
+            yOffset += DropdownPaneStyle.ItemHeight + 4;
+
+            // Sync Clipboard toggle - on new row
+            Button syncClipboardRow = new Button();
+            ps.ApplyFlatButtonStyle(syncClipboardRow);
+            syncClipboardRow.Location = new Point(DropdownPaneStyle.SidePadding, yOffset);
+            syncClipboardRow.Size = new Size(statusButtonUnitWidth, DropdownPaneStyle.ItemHeight);
+            syncClipboardRow.Click += (s, ev) => { paneSyncClipboardToggleSwitch.Checked = !paneSyncClipboardToggleSwitch.Checked; };
+
+            paneSyncClipboardToggleSwitch.Size = new Size(32, 16);
+            paneSyncClipboardToggleSwitch.Location = new Point((statusButtonUnitWidth - 32) / 2, autoReconnectVerticalPadding);
+
+            Label syncClipboardLabel = new Label();
+            syncClipboardLabel.Text = "Sync\nClipboard";
+            syncClipboardLabel.Font = DropdownPaneStyle.SmallFont;
+            syncClipboardLabel.ForeColor = ps.PaneTextColor;
+            syncClipboardLabel.BackColor = Color.Transparent;
+            syncClipboardLabel.Size = new Size(statusButtonUnitWidth, labelHeight);
+            syncClipboardLabel.TextAlign = ContentAlignment.MiddleCenter;
+            syncClipboardLabel.Location = new Point(0, autoReconnectVerticalPadding + 16 + 4);
+            syncClipboardRow.Controls.Add(syncClipboardLabel);
+
+            paneSyncClipboardToggleSwitch.OffColor = isDark ? Color.FromArgb(90, 90, 90) : Color.LightGray;
+            paneSyncClipboardToggleSwitch.OnColor = Color.FromArgb(76, 175, 80);
+            paneSyncClipboardToggleSwitch.ThumbColor = isDark ? Color.FromArgb(235, 235, 235) : Color.White;
+            paneSyncClipboardToggleSwitch.BackColor = ps.PaneBgColor;
+            syncClipboardRow.Controls.Add(paneSyncClipboardToggleSwitch);
+
+            dropdownPaneContent.Controls.Add(syncClipboardRow);
             yOffset += DropdownPaneStyle.ItemHeight + 4;
 
             // Size and show the dropdown pane
@@ -2190,6 +2389,15 @@ namespace MeshCentralRouter
             dropdownPane.Visible = false;
         }
 
+        // Auto-close dropdown pane when clicking on the KVM viewer area
+        private void KvmControl_MouseDown_ClosePane(object sender, MouseEventArgs e)
+        {
+            if (dropdownPane.Visible)
+            {
+                HideDropdownPane();
+            }
+        }
+
         // Keep old method name for compatibility
         private void HideSettingsFlyout()
         {
@@ -2230,6 +2438,31 @@ namespace MeshCentralRouter
         {
             mainStatusStrip.Visible = paneStatusBarToggleSwitch.Checked;
             Settings.SetRegValue("kvmStatusBarVisible", paneStatusBarToggleSwitch.Checked ? "1" : "0");
+        }
+
+        private void autoReconnectToggleSwitch_CheckedChanged(object sender, EventArgs e)
+        {
+            kvmControl.AutoReconnect = paneAutoReconnectToggleSwitch.Checked;
+            Settings.SetRegValue("kvmAutoReconnect", paneAutoReconnectToggleSwitch.Checked ? "1" : "0");
+        }
+
+        private void swapMouseToggleSwitch_CheckedChanged(object sender, EventArgs e)
+        {
+            kvmControl.SwamMouseButtons = paneSwapMouseToggleSwitch.Checked;
+            Settings.SetRegValue("kvmSwamMouseButtons", paneSwapMouseToggleSwitch.Checked ? "1" : "0");
+        }
+
+        private void remoteKeyMapToggleSwitch_CheckedChanged(object sender, EventArgs e)
+        {
+            kvmControl.RemoteKeyboardMap = paneRemoteKeyMapToggleSwitch.Checked;
+            Settings.SetRegValue("kvmRemoteKeyboardMap", paneRemoteKeyMapToggleSwitch.Checked ? "1" : "0");
+        }
+
+        private void syncClipboardToggleSwitch_CheckedChanged(object sender, EventArgs e)
+        {
+            kvmControl.AutoSendClipboard = paneSyncClipboardToggleSwitch.Checked;
+            Settings.SetRegValue("kvmAutoClipboard", paneSyncClipboardToggleSwitch.Checked ? "1" : "0");
+            if (paneSyncClipboardToggleSwitch.Checked) { Parent_ClipboardChanged(); }
         }
 
         private void ThemeManager_ThemeChanged(object sender, EventArgs e)

@@ -526,6 +526,10 @@ namespace MeshCentralRouter
             this.infoButton = new System.Windows.Forms.Button();
             this.themeButton = new System.Windows.Forms.Button();
             this.paneStatusBarToggleSwitch = new MeshCentralRouter.ToggleSwitch();
+            this.paneAutoReconnectToggleSwitch = new MeshCentralRouter.ToggleSwitch();
+            this.paneSwapMouseToggleSwitch = new MeshCentralRouter.ToggleSwitch();
+            this.paneRemoteKeyMapToggleSwitch = new MeshCentralRouter.ToggleSwitch();
+            this.paneSyncClipboardToggleSwitch = new MeshCentralRouter.ToggleSwitch();
             this.titleLabel = new System.Windows.Forms.Label();
             this.dropdownPane = new System.Windows.Forms.Panel();
             this.dropdownPaneContent = new System.Windows.Forms.Panel();
@@ -806,6 +810,50 @@ namespace MeshCentralRouter
             this.paneStatusBarToggleSwitch.Size = new System.Drawing.Size(40, 20);
             this.paneStatusBarToggleSwitch.TabIndex = 0;
             this.paneStatusBarToggleSwitch.CheckedChanged += new System.EventHandler(this.statusBarToggleSwitch_CheckedChanged);
+            //
+            // paneAutoReconnectToggleSwitch - Auto Reconnect toggle for use in dropdown pane
+            //
+            this.paneAutoReconnectToggleSwitch.Checked = false;
+            this.paneAutoReconnectToggleSwitch.Location = new System.Drawing.Point(0, 0);
+            this.paneAutoReconnectToggleSwitch.Name = "paneAutoReconnectToggleSwitch";
+            this.paneAutoReconnectToggleSwitch.OffColor = System.Drawing.Color.LightGray;
+            this.paneAutoReconnectToggleSwitch.OnColor = System.Drawing.Color.FromArgb(((int)(((byte)(76)))), ((int)(((byte)(175)))), ((int)(((byte)(80)))));
+            this.paneAutoReconnectToggleSwitch.Size = new System.Drawing.Size(40, 20);
+            this.paneAutoReconnectToggleSwitch.TabIndex = 0;
+            this.paneAutoReconnectToggleSwitch.CheckedChanged += new System.EventHandler(this.autoReconnectToggleSwitch_CheckedChanged);
+            //
+            // paneSwapMouseToggleSwitch - Swap Mouse toggle for use in dropdown pane
+            //
+            this.paneSwapMouseToggleSwitch.Checked = false;
+            this.paneSwapMouseToggleSwitch.Location = new System.Drawing.Point(0, 0);
+            this.paneSwapMouseToggleSwitch.Name = "paneSwapMouseToggleSwitch";
+            this.paneSwapMouseToggleSwitch.OffColor = System.Drawing.Color.LightGray;
+            this.paneSwapMouseToggleSwitch.OnColor = System.Drawing.Color.FromArgb(((int)(((byte)(76)))), ((int)(((byte)(175)))), ((int)(((byte)(80)))));
+            this.paneSwapMouseToggleSwitch.Size = new System.Drawing.Size(40, 20);
+            this.paneSwapMouseToggleSwitch.TabIndex = 0;
+            this.paneSwapMouseToggleSwitch.CheckedChanged += new System.EventHandler(this.swapMouseToggleSwitch_CheckedChanged);
+            //
+            // paneRemoteKeyMapToggleSwitch - Remote Key Map toggle for use in dropdown pane
+            //
+            this.paneRemoteKeyMapToggleSwitch.Checked = false;
+            this.paneRemoteKeyMapToggleSwitch.Location = new System.Drawing.Point(0, 0);
+            this.paneRemoteKeyMapToggleSwitch.Name = "paneRemoteKeyMapToggleSwitch";
+            this.paneRemoteKeyMapToggleSwitch.OffColor = System.Drawing.Color.LightGray;
+            this.paneRemoteKeyMapToggleSwitch.OnColor = System.Drawing.Color.FromArgb(((int)(((byte)(76)))), ((int)(((byte)(175)))), ((int)(((byte)(80)))));
+            this.paneRemoteKeyMapToggleSwitch.Size = new System.Drawing.Size(40, 20);
+            this.paneRemoteKeyMapToggleSwitch.TabIndex = 0;
+            this.paneRemoteKeyMapToggleSwitch.CheckedChanged += new System.EventHandler(this.remoteKeyMapToggleSwitch_CheckedChanged);
+            //
+            // paneSyncClipboardToggleSwitch - Sync Clipboard toggle for use in dropdown pane
+            //
+            this.paneSyncClipboardToggleSwitch.Checked = false;
+            this.paneSyncClipboardToggleSwitch.Location = new System.Drawing.Point(0, 0);
+            this.paneSyncClipboardToggleSwitch.Name = "paneSyncClipboardToggleSwitch";
+            this.paneSyncClipboardToggleSwitch.OffColor = System.Drawing.Color.LightGray;
+            this.paneSyncClipboardToggleSwitch.OnColor = System.Drawing.Color.FromArgb(((int)(((byte)(76)))), ((int)(((byte)(175)))), ((int)(((byte)(80)))));
+            this.paneSyncClipboardToggleSwitch.Size = new System.Drawing.Size(40, 20);
+            this.paneSyncClipboardToggleSwitch.TabIndex = 0;
+            this.paneSyncClipboardToggleSwitch.CheckedChanged += new System.EventHandler(this.syncClipboardToggleSwitch_CheckedChanged);
             //
             // titleLabel
             //
@@ -1090,6 +1138,10 @@ namespace MeshCentralRouter
         private Button settingsPaneStatsButton;
         private Label dropdownPaneLabel;
         private ToggleSwitch paneStatusBarToggleSwitch;
+        private ToggleSwitch paneAutoReconnectToggleSwitch;
+        private ToggleSwitch paneSwapMouseToggleSwitch;
+        private ToggleSwitch paneRemoteKeyMapToggleSwitch;
+        private ToggleSwitch paneSyncClipboardToggleSwitch;
         private Button minimizeButton;
         private Button maximizeButton;
         private Button closeButton;

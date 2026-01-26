@@ -200,6 +200,7 @@ namespace MeshCentralRouter
 
         // ── Fonts ─────────────────────────────────────────────────
         public static readonly Font SectionHeaderFont = new Font("Segoe UI", 10F, FontStyle.Bold);
+        public static readonly Font GroupHeaderFont = new Font("Segoe UI Semibold", 9F);
         public static readonly Font ItemFont = new Font("Segoe UI", 9.5F);
         public static readonly Font SmallFont = new Font("Segoe UI", 8F);
         public static readonly Font ZoomButtonFont = new Font("Segoe UI", 10F, FontStyle.Bold);
@@ -259,6 +260,22 @@ namespace MeshCentralRouter
                 ForeColor = PaneTextColor,
                 Location = new Point(SidePadding, yOffset),
                 Size = new Size(width - (SidePadding * 2), height)
+            };
+        }
+
+        /// <summary>
+        /// Creates a group header label (smaller than section header, e.g. "Connection", "Settings").
+        /// </summary>
+        public Label CreateGroupHeader(string text, int yOffset, int sidePadding = SidePadding)
+        {
+            return new Label
+            {
+                Text = text,
+                Font = GroupHeaderFont,
+                ForeColor = LabelColor,
+                BackColor = Color.Transparent,
+                Location = new Point(sidePadding, yOffset),
+                AutoSize = true
             };
         }
 

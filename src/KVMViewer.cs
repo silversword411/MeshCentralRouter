@@ -90,9 +90,13 @@ namespace MeshCentralRouter
         private bool localAutoReconnect = true;
         private Dictionary<int, Button> displaySelectionButtons = new Dictionary<int, Button>();
 
-        // Connection button labels for dynamic updates
-        private Label connectionIconLabel = null;
-        private Label connectionTextLabel = null;
+        // Settings pane controls (using standardized SettingsToggleItem and SettingsActionButton)
+        private SettingsActionButton settingsConnectionButton = null;
+        private SettingsToggleItem settingsStatusBarItem = null;
+        private SettingsToggleItem settingsAutoReconnectItem = null;
+        private SettingsToggleItem settingsSwapMouseItem = null;
+        private SettingsToggleItem settingsRemoteKeyMapItem = null;
+        private SettingsToggleItem settingsSyncClipboardItem = null;
 
         // Title bar dragging support
         private bool isDragging = false;
@@ -538,11 +542,11 @@ namespace MeshCentralRouter
             clipOutboundButton.Enabled = (state == 3);
 
             // Update connection button in settings pane if visible
-            if (connectionIconLabel != null && connectionTextLabel != null)
+            if (settingsConnectionButton != null)
             {
                 bool isDisconnected = (state == 0);
-                connectionIconLabel.Text = isDisconnected ? "🔌" : "⏏";
-                connectionTextLabel.Text = isDisconnected ? Translate.T(Properties.Resources.Connect, lang) : Translate.T(Properties.Resources.Disconnect, lang);
+                settingsConnectionButton.Icon = isDisconnected ? "🔌" : "⏏";
+                settingsConnectionButton.LabelText = isDisconnected ? Translate.T(Properties.Resources.Connect, lang) : Translate.T(Properties.Resources.Disconnect, lang);
             }
         }
 
@@ -1911,6 +1915,12 @@ namespace MeshCentralRouter
                 return;
             }
 
+            // Hide any other open pane first
+            if (dropdownPane.Visible)
+            {
+                HideDropdownPane();
+            }
+
             // Set the title
             dropdownPaneLabel.Text = "Settings";
 
@@ -1920,7 +1930,7 @@ namespace MeshCentralRouter
             var ps = new DropdownPaneStyle();
             bool isDark = ThemeManager.Instance.IsDarkMode;
 
-            // Improved layout constants
+            // Layout constants matching DropdownPaneStyle patterns
             int itemWidth = 80;
             int itemHeight = 64;
             int itemSpacing = 8;
@@ -1929,6 +1939,30 @@ namespace MeshCentralRouter
             int paneWidth = (itemWidth * 4) + (itemSpacing * 3) + (sidePadding * 2);
 
             int yOffset = topPadding;
+
+            // === Connection Group (at top) ===
+            dropdownPaneContent.Controls.Add(ps.CreateSectionHeader("Connection", yOffset, DropdownPaneStyle.SectionHeaderHeight, paneWidth));
+            yOffset += DropdownPaneStyle.SectionHeaderHeight;
+
+            // Connect/Disconnect action button using SettingsActionButton
+            bool isDisconnected = (this.state == 0);
+            string disconnectText = isDisconnected ? Translate.T(Properties.Resources.Connect, lang) : Translate.T(Properties.Resources.Disconnect, lang);
+            string disconnectIcon = isDisconnected ? "🔌" : "⏏";
+
+            settingsConnectionButton = new SettingsActionButton();
+            settingsConnectionButton.Icon = disconnectIcon;
+            settingsConnectionButton.LabelText = disconnectText;
+            settingsConnectionButton.Size = new Size(itemWidth, itemHeight);
+            settingsConnectionButton.Location = new Point(sidePadding, yOffset);
+            settingsConnectionButton.UpdateTheme(isDark);
+            settingsConnectionButton.ButtonClick += (s, ev) => { MenuItemDisconnect_Click(s, ev); };
+            dropdownPaneContent.Controls.Add(settingsConnectionButton);
+
+            yOffset += itemHeight + itemSpacing + 4;
+
+            // === Settings Group ===
+            dropdownPaneContent.Controls.Add(ps.CreateSectionHeader("Settings", yOffset, DropdownPaneStyle.SectionHeaderHeight, paneWidth));
+            yOffset += DropdownPaneStyle.SectionHeaderHeight;
 
             // Helper to create rounded rectangle region
             Func<int, int, int, System.Drawing.Region> createRoundedRegion = (width, height, radius) =>
@@ -1982,74 +2016,6 @@ namespace MeshCentralRouter
                 return itemPanel;
             };
 
-            // === Connection Group (at top) ===
-            Label connectionGroupLabel = new Label();
-            connectionGroupLabel.Text = "Connection";
-            connectionGroupLabel.Font = new Font("Segoe UI Semibold", 9F);
-            connectionGroupLabel.ForeColor = ps.LabelColor;
-            connectionGroupLabel.BackColor = Color.Transparent;
-            connectionGroupLabel.Location = new Point(sidePadding, yOffset);
-            connectionGroupLabel.AutoSize = true;
-            dropdownPaneContent.Controls.Add(connectionGroupLabel);
-
-            yOffset += 22;
-
-            // Connect/Disconnect action button
-            Panel disconnectPanel = new Panel();
-            disconnectPanel.Size = new Size(itemWidth, itemHeight);
-            disconnectPanel.Location = new Point(sidePadding, yOffset);
-            disconnectPanel.BackColor = isDark ? Color.FromArgb(55, 55, 55) : Color.FromArgb(235, 235, 235);
-            disconnectPanel.Cursor = Cursors.Hand;
-            disconnectPanel.Region = createRoundedRegion(itemWidth, itemHeight, cornerRadius);
-
-            bool isDisconnected = (this.state == 0);
-            string disconnectText = isDisconnected ? Translate.T(Properties.Resources.Connect, lang) : Translate.T(Properties.Resources.Disconnect, lang);
-            string disconnectIcon = isDisconnected ? "🔌" : "⏏";
-
-            Label iconLabel = new Label();
-            iconLabel.Text = disconnectIcon;
-            iconLabel.Font = new Font("Segoe UI Emoji", 14F);
-            iconLabel.ForeColor = ps.LabelColor;
-            iconLabel.BackColor = Color.Transparent;
-            iconLabel.Size = new Size(itemWidth, 24);
-            iconLabel.Location = new Point(0, 10);
-            iconLabel.TextAlign = ContentAlignment.MiddleCenter;
-            disconnectPanel.Controls.Add(iconLabel);
-
-            Label disconnectLabel = new Label();
-            disconnectLabel.Text = disconnectText;
-            disconnectLabel.Font = new Font("Segoe UI", 8F);
-            disconnectLabel.ForeColor = ps.PaneTextColor;
-            disconnectLabel.BackColor = Color.Transparent;
-            disconnectLabel.Size = new Size(itemWidth - 4, 20);
-            disconnectLabel.Location = new Point(2, 38);
-            disconnectLabel.TextAlign = ContentAlignment.TopCenter;
-            disconnectPanel.Controls.Add(disconnectLabel);
-
-            // Store references for dynamic updates
-            connectionIconLabel = iconLabel;
-            connectionTextLabel = disconnectLabel;
-
-            disconnectPanel.Click += (s, ev) => { MenuItemDisconnect_Click(s, ev); };
-            iconLabel.Click += (s, ev) => { MenuItemDisconnect_Click(s, ev); };
-            disconnectLabel.Click += (s, ev) => { MenuItemDisconnect_Click(s, ev); };
-
-            dropdownPaneContent.Controls.Add(disconnectPanel);
-
-            yOffset += itemHeight + itemSpacing + 4;
-
-            // === Settings Group ===
-            Label settingsGroupLabel = new Label();
-            settingsGroupLabel.Text = "Settings";
-            settingsGroupLabel.Font = new Font("Segoe UI Semibold", 9F);
-            settingsGroupLabel.ForeColor = ps.LabelColor;
-            settingsGroupLabel.BackColor = Color.Transparent;
-            settingsGroupLabel.Location = new Point(sidePadding, yOffset);
-            settingsGroupLabel.AutoSize = true;
-            dropdownPaneContent.Controls.Add(settingsGroupLabel);
-
-            yOffset += 22;
-
             // Row 1: Status Bar, Auto Reconnect, Swap Mouse, Remote Key Map
             dropdownPaneContent.Controls.Add(createToggleItem("Status Bar", paneStatusBarToggleSwitch, sidePadding, yOffset));
             dropdownPaneContent.Controls.Add(createToggleItem("Auto\nReconnect", paneAutoReconnectToggleSwitch, sidePadding + itemWidth + itemSpacing, yOffset));
@@ -2063,17 +2029,9 @@ namespace MeshCentralRouter
 
             yOffset += itemHeight + topPadding;
 
-            // Size and show the dropdown pane
-            dropdownPaneContent.Size = new Size(paneWidth - 2, yOffset);
-            dropdownPane.Size = new Size(paneWidth, DropdownPaneStyle.PaneHeaderHeight + yOffset);
-
-            int centerX = (this.Width - dropdownPane.Width) / 2;
-            dropdownPane.Location = new Point(centerX, titleBarPanel.Bottom);
-
-            dropdownPane.Visible = true;
-            dropdownPane.BringToFront();
-
-            ps.ApplyPaneTheme(dropdownPane, dropdownPaneLabel, dropdownPaneContent);
+            // Finalize and show the dropdown pane (same pattern as other panes)
+            ps.FinalizePane(dropdownPane, dropdownPaneLabel, dropdownPaneContent,
+                yOffset, this.Width, titleBarPanel.Bottom, paneWidth);
         }
 
         private void ShowDropdownPane(string title, params Control[] contentControls)
@@ -2447,33 +2405,45 @@ namespace MeshCentralRouter
 
         private void statusBarToggleSwitch_CheckedChanged(object sender, EventArgs e)
         {
-            mainStatusStrip.Visible = paneStatusBarToggleSwitch.Checked;
-            Settings.SetRegValue("kvmStatusBarVisible", paneStatusBarToggleSwitch.Checked ? "1" : "0");
+            // Get checked state from the appropriate control
+            bool isChecked = (sender is SettingsToggleItem item) ? item.Checked : paneStatusBarToggleSwitch.Checked;
+            mainStatusStrip.Visible = isChecked;
+            Settings.SetRegValue("kvmStatusBarVisible", isChecked ? "1" : "0");
+            // Keep pane toggle in sync
+            if (paneStatusBarToggleSwitch.Checked != isChecked) paneStatusBarToggleSwitch.Checked = isChecked;
         }
 
         private void autoReconnectToggleSwitch_CheckedChanged(object sender, EventArgs e)
         {
-            kvmControl.AutoReconnect = paneAutoReconnectToggleSwitch.Checked;
-            Settings.SetRegValue("kvmAutoReconnect", paneAutoReconnectToggleSwitch.Checked ? "1" : "0");
+            bool isChecked = (sender is SettingsToggleItem item) ? item.Checked : paneAutoReconnectToggleSwitch.Checked;
+            kvmControl.AutoReconnect = isChecked;
+            Settings.SetRegValue("kvmAutoReconnect", isChecked ? "1" : "0");
+            if (paneAutoReconnectToggleSwitch.Checked != isChecked) paneAutoReconnectToggleSwitch.Checked = isChecked;
         }
 
         private void swapMouseToggleSwitch_CheckedChanged(object sender, EventArgs e)
         {
-            kvmControl.SwamMouseButtons = paneSwapMouseToggleSwitch.Checked;
-            Settings.SetRegValue("kvmSwamMouseButtons", paneSwapMouseToggleSwitch.Checked ? "1" : "0");
+            bool isChecked = (sender is SettingsToggleItem item) ? item.Checked : paneSwapMouseToggleSwitch.Checked;
+            kvmControl.SwamMouseButtons = isChecked;
+            Settings.SetRegValue("kvmSwamMouseButtons", isChecked ? "1" : "0");
+            if (paneSwapMouseToggleSwitch.Checked != isChecked) paneSwapMouseToggleSwitch.Checked = isChecked;
         }
 
         private void remoteKeyMapToggleSwitch_CheckedChanged(object sender, EventArgs e)
         {
-            kvmControl.RemoteKeyboardMap = paneRemoteKeyMapToggleSwitch.Checked;
-            Settings.SetRegValue("kvmRemoteKeyboardMap", paneRemoteKeyMapToggleSwitch.Checked ? "1" : "0");
+            bool isChecked = (sender is SettingsToggleItem item) ? item.Checked : paneRemoteKeyMapToggleSwitch.Checked;
+            kvmControl.RemoteKeyboardMap = isChecked;
+            Settings.SetRegValue("kvmRemoteKeyboardMap", isChecked ? "1" : "0");
+            if (paneRemoteKeyMapToggleSwitch.Checked != isChecked) paneRemoteKeyMapToggleSwitch.Checked = isChecked;
         }
 
         private void syncClipboardToggleSwitch_CheckedChanged(object sender, EventArgs e)
         {
-            kvmControl.AutoSendClipboard = paneSyncClipboardToggleSwitch.Checked;
-            Settings.SetRegValue("kvmAutoClipboard", paneSyncClipboardToggleSwitch.Checked ? "1" : "0");
-            if (paneSyncClipboardToggleSwitch.Checked) { Parent_ClipboardChanged(); }
+            bool isChecked = (sender is SettingsToggleItem item) ? item.Checked : paneSyncClipboardToggleSwitch.Checked;
+            kvmControl.AutoSendClipboard = isChecked;
+            Settings.SetRegValue("kvmAutoClipboard", isChecked ? "1" : "0");
+            if (paneSyncClipboardToggleSwitch.Checked != isChecked) paneSyncClipboardToggleSwitch.Checked = isChecked;
+            if (isChecked) { Parent_ClipboardChanged(); }
         }
 
         private void ThemeManager_ThemeChanged(object sender, EventArgs e)
@@ -2602,6 +2572,15 @@ namespace MeshCentralRouter
             settingsPaneStatsButton.ForeColor = ps.PaneTextColor;
             settingsPaneStatsButton.Image = GetTintedIcon(Properties.Resources.Statistics20, ps.PaneTextColor);
             settingsPaneStatsButton.FlatAppearance.MouseOverBackColor = ps.PaneHoverColor;
+
+            // Update settings pane toggle items and action button with new theme
+            bool isDark = ThemeManager.Instance.IsDarkMode;
+            settingsConnectionButton?.UpdateTheme(isDark);
+            settingsStatusBarItem?.UpdateTheme(isDark);
+            settingsAutoReconnectItem?.UpdateTheme(isDark);
+            settingsSwapMouseItem?.UpdateTheme(isDark);
+            settingsRemoteKeyMapItem?.UpdateTheme(isDark);
+            settingsSyncClipboardItem?.UpdateTheme(isDark);
         }
 
         /* ===== USAGE EXAMPLE FOR GRID-BASED DROPDOWN PANE =====

@@ -90,13 +90,8 @@ namespace MeshCentralRouter
         private bool localAutoReconnect = true;
         private Dictionary<int, Button> displaySelectionButtons = new Dictionary<int, Button>();
 
-        // Settings pane controls (using standardized SettingsToggleItem and SettingsActionButton)
-        private SettingsActionButton settingsConnectionButton = null;
-        private SettingsToggleItem settingsStatusBarItem = null;
-        private SettingsToggleItem settingsAutoReconnectItem = null;
-        private SettingsToggleItem settingsSwapMouseItem = null;
-        private SettingsToggleItem settingsRemoteKeyMapItem = null;
-        private SettingsToggleItem settingsSyncClipboardItem = null;
+        // Settings pane controls
+        private Panel settingsConnectionPanel = null;
 
         // Title bar dragging support
         private bool isDragging = false;
@@ -119,6 +114,8 @@ namespace MeshCentralRouter
         private Label scalingLevelLabel;
         private double currentScalingPercent = 100; // Current display zoom percentage (12.5-200)
         private List<Button> scalingPresetButtons = new List<Button>();
+        private List<Panel> scalingPresetPanels = new List<Panel>();
+        private List<Panel> frameRatePanels = new List<Panel>();
 
         // Auto-hide title bar when maximized
         private bool titleBarVisible = true;
@@ -542,11 +539,15 @@ namespace MeshCentralRouter
             clipOutboundButton.Enabled = (state == 3);
 
             // Update connection button in settings pane if visible
-            if (settingsConnectionButton != null)
+            // Update connection button in settings pane if visible
+            if (settingsConnectionPanel != null && settingsConnectionPanel.Controls.Count >= 2)
             {
                 bool isDisconnected = (state == 0);
-                settingsConnectionButton.Icon = isDisconnected ? "🔌" : "⏏";
-                settingsConnectionButton.LabelText = isDisconnected ? Translate.T(Properties.Resources.Connect, lang) : Translate.T(Properties.Resources.Disconnect, lang);
+                // First child is icon label, second is text label
+                if (settingsConnectionPanel.Controls[0] is Label iconLabel)
+                    iconLabel.Text = isDisconnected ? "🔌" : "⏏";
+                if (settingsConnectionPanel.Controls[1] is Label textLabel)
+                    textLabel.Text = isDisconnected ? Translate.T(Properties.Resources.Connect, lang) : Translate.T(Properties.Resources.Disconnect, lang);
             }
         }
 
@@ -1092,28 +1093,25 @@ namespace MeshCentralRouter
             dropdownPaneContent.Controls.Clear();
 
             var ps = new DropdownPaneStyle();
+            bool isDark = ThemeManager.Instance.IsDarkMode;
             int yOffset = DropdownPaneStyle.ContentTopPadding;
 
             // === Actions Section ===
             dropdownPaneContent.Controls.Add(ps.CreateSectionHeader("Actions", yOffset));
             yOffset += DropdownPaneStyle.SectionHeaderHeight;
 
-            // CAD (Ctrl+Alt+Del) button - one unit wide, same height as frame rate buttons
-            int buttonUnitWidth = DropdownPaneStyle.ButtonUnitWidth(DropdownPaneStyle.PaneWidth);
-            Button cadPaneButton = new Button();
-            ps.ApplyFlatButtonStyle(cadPaneButton);
-            cadPaneButton.Font = DropdownPaneStyle.SmallFont;
-            cadPaneButton.Text = "Send\nCtrl-Alt-Del";
-            cadPaneButton.TextAlign = ContentAlignment.MiddleCenter;
-            cadPaneButton.Cursor = Cursors.Hand;
-            cadPaneButton.Location = new Point(DropdownPaneStyle.SidePadding, yOffset);
-            cadPaneButton.Size = new Size(buttonUnitWidth, DropdownPaneStyle.ItemHeight);
-            cadPaneButton.Click += (s, ev) => {
-                sendCtrlAltDelToolStripMenuItem_Click(s, ev);
-                HideDropdownPane();
-            };
-            dropdownPaneContent.Controls.Add(cadPaneButton);
-            yOffset += DropdownPaneStyle.ItemHeight + 8;
+            // CAD (Ctrl+Alt+Del) button - rounded style matching Settings pane
+            int itemWidth = 80;
+            int itemHeight = 64;
+            Panel cadButton = ps.CreateActionButton("⌨️", "Ctrl-Alt-Del",
+                itemWidth, itemHeight,
+                new Point(DropdownPaneStyle.SidePadding, yOffset),
+                (s, ev) => {
+                    sendCtrlAltDelToolStripMenuItem_Click(s, ev);
+                    HideDropdownPane();
+                }, isDark);
+            dropdownPaneContent.Controls.Add(cadButton);
+            yOffset += itemHeight + 10;
 
             // Size and show the dropdown pane
             ps.FinalizePane(dropdownPane, dropdownPaneLabel, dropdownPaneContent,
@@ -1497,6 +1495,7 @@ namespace MeshCentralRouter
             dropdownPaneContent.Controls.Clear();
 
             var ps = new DropdownPaneStyle();
+            bool isDark = ThemeManager.Instance.IsDarkMode;
             int yOffset = DropdownPaneStyle.ContentTopPadding;
 
             // Select Displays section - only show if we have display info
@@ -1521,29 +1520,30 @@ namespace MeshCentralRouter
                 // Create display selection buttons in the dropdown pane
                 foreach (ushort displayNum in kvmControl.displays)
                 {
-                    Button displayBtn = new Button();
                     bool isSelected = (kvmControl.currentDisp == displayNum);
-                    ps.ApplyFlatButtonStyle(displayBtn, isSelected);
-                    displayBtn.Location = new Point(displayX, displayY);
-                    displayBtn.Size = new Size(displayButtonSize, displayButtonSize);
-                    displayBtn.Tag = displayNum;
-                    displayBtn.ImageList = displaySelectorImageList;
+                    int imageIndex;
+                    string tooltip;
 
                     if (displayNum == 0xFFFF)
                     {
                         // All displays button
-                        displayBtn.ImageIndex = isSelected ? 2 : 3;
-                        mainToolTip.SetToolTip(displayBtn, Translate.T(Properties.Resources.AllDisplays, lang));
+                        imageIndex = isSelected ? 2 : 3;
+                        tooltip = Translate.T(Properties.Resources.AllDisplays, lang);
                     }
                     else
                     {
                         // Individual display button
-                        displayBtn.ImageIndex = isSelected ? 0 : 1;
-                        mainToolTip.SetToolTip(displayBtn, string.Format(Translate.T(Properties.Resources.DisplayX, lang), displayNum));
+                        imageIndex = isSelected ? 0 : 1;
+                        tooltip = string.Format(Translate.T(Properties.Resources.DisplayX, lang), displayNum);
                     }
 
-                    displayBtn.Click += DisplayPaneButton_Click;
-                    dropdownPaneContent.Controls.Add(displayBtn);
+                    Panel displayPanel = ps.CreateRoundedImageButton(
+                        displayButtonSize, displayButtonSize,
+                        new Point(displayX, displayY),
+                        displaySelectorImageList, imageIndex,
+                        DisplayPaneButton_Click, isDark, isSelected, displayNum);
+                    mainToolTip.SetToolTip(displayPanel, tooltip);
+                    dropdownPaneContent.Controls.Add(displayPanel);
 
                     displayX += displayButtonSize + displayButtonSpacing;
                     buttonsInRow++;
@@ -1565,15 +1565,16 @@ namespace MeshCentralRouter
                 if (kvmControl.currentDisp == 65535 && kvmControl.displays.Count > 1)
                 {
                     yOffset += 4;
-                    Button splitJoinBtn = new Button();
-                    ps.ApplyFlatButtonStyle(splitJoinBtn);
-                    splitJoinBtn.Font = DropdownPaneStyle.ItemFont;
-                    splitJoinBtn.Location = new Point(DropdownPaneStyle.SidePadding, yOffset);
-                    splitJoinBtn.Size = new Size(DropdownPaneStyle.PaneWidth - (DropdownPaneStyle.SidePadding * 2), DropdownPaneStyle.ItemHeight);
-                    splitJoinBtn.Text = splitMode ? Translate.T(Properties.Resources.Join, lang) : Translate.T(Properties.Resources.Split, lang);
-                    splitJoinBtn.Click += DisplayPaneSplitButton_Click;
-                    dropdownPaneContent.Controls.Add(splitJoinBtn);
-                    yOffset += DropdownPaneStyle.ItemHeight;
+                    string splitJoinIcon = splitMode ? "🔗" : "⊞";
+                    string splitJoinText = splitMode ? Translate.T(Properties.Resources.Join, lang) : Translate.T(Properties.Resources.Split, lang);
+                    int itemWidth = 80;
+                    int itemHeight = 64;
+                    Panel splitJoinPanel = ps.CreateActionButton(splitJoinIcon, splitJoinText,
+                        itemWidth, itemHeight,
+                        new Point(DropdownPaneStyle.SidePadding, yOffset),
+                        DisplayPaneSplitButton_Click, isDark);
+                    dropdownPaneContent.Controls.Add(splitJoinPanel);
+                    yOffset += itemHeight;
                 }
 
                 yOffset += 8; // Add spacing after section
@@ -1583,29 +1584,24 @@ namespace MeshCentralRouter
             dropdownPaneContent.Controls.Add(ps.CreateSectionHeader(Translate.T(Properties.Resources.FrameRate, lang), yOffset));
             yOffset += DropdownPaneStyle.SectionHeaderHeight;
 
-            // Create ToggleButtonGroup for frame rate options
-            frameRateButtonGroup = new ToggleButtonGroup();
-            frameRateButtonGroup.Location = new Point(0, yOffset);
-            frameRateButtonGroup.Size = new Size(DropdownPaneStyle.PaneWidth, DropdownPaneStyle.ItemHeight);
-            frameRateButtonGroup.ButtonSpacing = DropdownPaneStyle.ButtonSpacing;
-            frameRateButtonGroup.SidePadding = DropdownPaneStyle.SidePadding;
-            frameRateButtonGroup.SelectedValue = kvmControl.FrameRate;
+            // Frame rate buttons - 4 rounded panels
+            int frameRateButtonWidth = (DropdownPaneStyle.PaneWidth - (DropdownPaneStyle.SidePadding * 2) - 6) / 4;
+            int frameRateHeight = DropdownPaneStyle.ItemHeight;
+            string[] frameRateLabels = { Translate.T(Properties.Resources.Fast, lang), Translate.T(Properties.Resources.Medium, lang), Translate.T(Properties.Resources.Slow, lang), Translate.T(Properties.Resources.VerySlow, lang) };
+            int[] frameRateValues = { 50, 100, 400, 1000 };
 
-            // Add frame rate options: Fast (50ms), Medium (100ms), Slow (400ms), Very Slow (1000ms)
-            frameRateButtonGroup.AddButton(Translate.T(Properties.Resources.Fast, lang), 50);
-            frameRateButtonGroup.AddButton(Translate.T(Properties.Resources.Medium, lang), 100);
-            frameRateButtonGroup.AddButton(Translate.T(Properties.Resources.Slow, lang), 400);
-            frameRateButtonGroup.AddButton(Translate.T(Properties.Resources.VerySlow, lang), 1000);
-
-            // Apply theme colors
-            frameRateButtonGroup.UpdateTheme(ps.PaneBgColor, ps.PaneTextColor, ps.SelectedColor,
-                ps.BorderColor, ps.SelectedBorderColor, ps.PaneHoverColor);
-
-            // Handle value changes
-            frameRateButtonGroup.SelectedValueChanged += FrameRateButtonGroup_SelectedValueChanged;
-
-            dropdownPaneContent.Controls.Add(frameRateButtonGroup);
-            yOffset += DropdownPaneStyle.ItemHeight + 8;
+            frameRatePanels.Clear();
+            for (int i = 0; i < 4; i++)
+            {
+                bool isSelected = (kvmControl.FrameRate == frameRateValues[i]);
+                int xPos = DropdownPaneStyle.SidePadding + i * (frameRateButtonWidth + 2);
+                Panel frPanel = ps.CreateRoundedButton(frameRateLabels[i], frameRateButtonWidth, frameRateHeight,
+                    new Point(xPos, yOffset), FrameRatePanel_Click, isDark, DropdownPaneStyle.SmallFont, isSelected);
+                frPanel.Tag = frameRateValues[i];
+                dropdownPaneContent.Controls.Add(frPanel);
+                frameRatePanels.Add(frPanel);
+            }
+            yOffset += frameRateHeight + 8;
 
             // Quality section header
             dropdownPaneContent.Controls.Add(ps.CreateSectionHeader("Quality", yOffset));
@@ -1632,24 +1628,14 @@ namespace MeshCentralRouter
 
             yOffset += qualityHalfHeight + 2;
 
-            // Second row: − button | + button
-            Button qualityDownBtn = new Button();
-            ps.ApplyFlatButtonStyle(qualityDownBtn);
-            qualityDownBtn.Font = DropdownPaneStyle.ZoomButtonFont;
-            qualityDownBtn.Location = new Point(DropdownPaneStyle.SidePadding, yOffset);
-            qualityDownBtn.Size = new Size(qualityButtonWidth, qualityHalfHeight);
-            qualityDownBtn.Text = "−";
-            qualityDownBtn.Click += QualityDown_Click;
-            dropdownPaneContent.Controls.Add(qualityDownBtn);
+            // Second row: − button | + button (rounded panels)
+            Panel qualityDownPanel = ps.CreateRoundedButton("−", qualityButtonWidth, qualityHalfHeight,
+                new Point(DropdownPaneStyle.SidePadding, yOffset), QualityDown_Click, isDark, DropdownPaneStyle.ZoomButtonFont);
+            dropdownPaneContent.Controls.Add(qualityDownPanel);
 
-            Button qualityUpBtn = new Button();
-            ps.ApplyFlatButtonStyle(qualityUpBtn);
-            qualityUpBtn.Font = DropdownPaneStyle.ZoomButtonFont;
-            qualityUpBtn.Location = new Point(DropdownPaneStyle.SidePadding + qualityButtonWidth + 2, yOffset);
-            qualityUpBtn.Size = new Size(qualityButtonWidth, qualityHalfHeight);
-            qualityUpBtn.Text = "+";
-            qualityUpBtn.Click += QualityUp_Click;
-            dropdownPaneContent.Controls.Add(qualityUpBtn);
+            Panel qualityUpPanel = ps.CreateRoundedButton("+", qualityButtonWidth, qualityHalfHeight,
+                new Point(DropdownPaneStyle.SidePadding + qualityButtonWidth + 2, yOffset), QualityUp_Click, isDark, DropdownPaneStyle.ZoomButtonFont);
+            dropdownPaneContent.Controls.Add(qualityUpPanel);
 
             yOffset += qualityHalfHeight + 8;
 
@@ -1662,15 +1648,10 @@ namespace MeshCentralRouter
             int scalingRowWidth = DropdownPaneStyle.PaneWidth - (DropdownPaneStyle.SidePadding * 2);
             int zoomButtonWidth = (scalingRowWidth - 4) / 3; // 3 columns with small gaps
 
-            // Zoom out button
-            Button zoomOutBtn = new Button();
-            ps.ApplyFlatButtonStyle(zoomOutBtn);
-            zoomOutBtn.Font = DropdownPaneStyle.ZoomButtonFont;
-            zoomOutBtn.Location = new Point(DropdownPaneStyle.SidePadding, yOffset);
-            zoomOutBtn.Size = new Size(zoomButtonWidth, halfHeight);
-            zoomOutBtn.Text = "−";
-            zoomOutBtn.Click += ScalingZoomOut_Click;
-            dropdownPaneContent.Controls.Add(zoomOutBtn);
+            // Zoom out button (rounded panel)
+            Panel zoomOutPanel = ps.CreateRoundedButton("−", zoomButtonWidth, halfHeight,
+                new Point(DropdownPaneStyle.SidePadding, yOffset), ScalingZoomOut_Click, isDark, DropdownPaneStyle.ZoomButtonFont);
+            dropdownPaneContent.Controls.Add(zoomOutPanel);
 
             // Current scaling level label (center)
             scalingLevelLabel = new Label();
@@ -1683,37 +1664,28 @@ namespace MeshCentralRouter
             scalingLevelLabel.Text = FormatScalingPercent(currentScalingPercent);
             dropdownPaneContent.Controls.Add(scalingLevelLabel);
 
-            // Zoom in button
-            Button zoomInBtn = new Button();
-            ps.ApplyFlatButtonStyle(zoomInBtn);
-            zoomInBtn.Font = DropdownPaneStyle.ZoomButtonFont;
-            zoomInBtn.Location = new Point(DropdownPaneStyle.SidePadding + (zoomButtonWidth + 2) * 2, yOffset);
-            zoomInBtn.Size = new Size(zoomButtonWidth, halfHeight);
-            zoomInBtn.Text = "+";
-            zoomInBtn.Click += ScalingZoomIn_Click;
-            dropdownPaneContent.Controls.Add(zoomInBtn);
+            // Zoom in button (rounded panel)
+            Panel zoomInPanel = ps.CreateRoundedButton("+", zoomButtonWidth, halfHeight,
+                new Point(DropdownPaneStyle.SidePadding + (zoomButtonWidth + 2) * 2, yOffset), ScalingZoomIn_Click, isDark, DropdownPaneStyle.ZoomButtonFont);
+            dropdownPaneContent.Controls.Add(zoomInPanel);
 
             yOffset += halfHeight + 4;
 
             // Second row: 50% | 75% | 100% | 150% | 200% preset buttons (half-height, 5 columns)
             int presetButtonWidth = (scalingRowWidth - 8) / 5; // 5 columns with small gaps
 
-            scalingPresetButtons.Clear();
+            scalingPresetPanels.Clear();
             double[] presetValues = { 50, 75, 100, 150, 200 };
             for (int i = 0; i < presetValues.Length; i++)
             {
                 double presetValue = presetValues[i];
                 bool isSelected = Math.Abs(currentScalingPercent - presetValue) < 0.01;
-                Button presetBtn = new Button();
-                ps.ApplyFlatButtonStyle(presetBtn, isSelected);
-                presetBtn.Font = DropdownPaneStyle.SmallFont;
-                presetBtn.Location = new Point(DropdownPaneStyle.SidePadding + i * (presetButtonWidth + 2), yOffset);
-                presetBtn.Size = new Size(presetButtonWidth, halfHeight);
-                presetBtn.Text = FormatScalingPercent(presetValue);
-                presetBtn.Tag = presetValue;
-                presetBtn.Click += ScalingPreset_Click;
-                dropdownPaneContent.Controls.Add(presetBtn);
-                scalingPresetButtons.Add(presetBtn);
+                Panel presetPanel = ps.CreateRoundedButton(FormatScalingPercent(presetValue), presetButtonWidth, halfHeight,
+                    new Point(DropdownPaneStyle.SidePadding + i * (presetButtonWidth + 2), yOffset),
+                    ScalingPresetPanel_Click, isDark, DropdownPaneStyle.SmallFont, isSelected);
+                presetPanel.Tag = presetValue;
+                dropdownPaneContent.Controls.Add(presetPanel);
+                scalingPresetPanels.Add(presetPanel);
             }
 
             yOffset += halfHeight + 4;
@@ -1822,6 +1794,59 @@ namespace MeshCentralRouter
             {
                 double presetValue = Convert.ToDouble(btn.Tag);
                 ApplyDisplayScaling(presetValue);
+            }
+        }
+
+        private void ScalingPresetPanel_Click(object sender, EventArgs e)
+        {
+            // Handle click from panel or its child label
+            Control ctrl = sender as Control;
+            while (ctrl != null && ctrl.Tag == null)
+            {
+                ctrl = ctrl.Parent;
+            }
+            if (ctrl != null && ctrl.Tag != null)
+            {
+                double presetValue = Convert.ToDouble(ctrl.Tag);
+                ApplyDisplayScaling(presetValue);
+
+                // Update selection state of preset panels
+                bool isDark = ThemeManager.Instance.IsDarkMode;
+                var ps = new DropdownPaneStyle();
+                foreach (Panel p in scalingPresetPanels)
+                {
+                    bool isSelected = (p.Tag != null && Math.Abs(Convert.ToDouble(p.Tag) - presetValue) < 0.01);
+                    p.BackColor = isSelected ? ps.SelectedColor : (isDark ? Color.FromArgb(55, 55, 55) : Color.FromArgb(235, 235, 235));
+                }
+            }
+        }
+
+        private void FrameRatePanel_Click(object sender, EventArgs e)
+        {
+            // Handle click from panel or its child label
+            Control ctrl = sender as Control;
+            while (ctrl != null && ctrl.Tag == null)
+            {
+                ctrl = ctrl.Parent;
+            }
+            if (ctrl != null && ctrl.Tag != null)
+            {
+                int frameRateValue = Convert.ToInt32(ctrl.Tag);
+
+                // Apply the new frame rate
+                kvmControl.SetCompressionParams(kvmControl.CompressionLevel, kvmControl.ScalingLevel, frameRateValue);
+
+                // Save to registry
+                Settings.SetRegValue("kvmFrameRate", frameRateValue.ToString());
+
+                // Update selection state of frame rate panels
+                bool isDark = ThemeManager.Instance.IsDarkMode;
+                var ps = new DropdownPaneStyle();
+                foreach (Panel p in frameRatePanels)
+                {
+                    bool isSelected = (p.Tag != null && Convert.ToInt32(p.Tag) == frameRateValue);
+                    p.BackColor = isSelected ? ps.SelectedColor : (isDark ? Color.FromArgb(55, 55, 55) : Color.FromArgb(235, 235, 235));
+                }
             }
         }
 
@@ -1944,19 +1969,16 @@ namespace MeshCentralRouter
             dropdownPaneContent.Controls.Add(ps.CreateSectionHeader("Connection", yOffset, DropdownPaneStyle.SectionHeaderHeight, paneWidth));
             yOffset += DropdownPaneStyle.SectionHeaderHeight;
 
-            // Connect/Disconnect action button using SettingsActionButton
+            // Connect/Disconnect action button using rounded panel style
             bool isDisconnected = (this.state == 0);
             string disconnectText = isDisconnected ? Translate.T(Properties.Resources.Connect, lang) : Translate.T(Properties.Resources.Disconnect, lang);
             string disconnectIcon = isDisconnected ? "🔌" : "⏏";
 
-            settingsConnectionButton = new SettingsActionButton();
-            settingsConnectionButton.Icon = disconnectIcon;
-            settingsConnectionButton.LabelText = disconnectText;
-            settingsConnectionButton.Size = new Size(itemWidth, itemHeight);
-            settingsConnectionButton.Location = new Point(sidePadding, yOffset);
-            settingsConnectionButton.UpdateTheme(isDark);
-            settingsConnectionButton.ButtonClick += (s, ev) => { MenuItemDisconnect_Click(s, ev); };
-            dropdownPaneContent.Controls.Add(settingsConnectionButton);
+            settingsConnectionPanel = ps.CreateActionButton(disconnectIcon, disconnectText,
+                itemWidth, itemHeight,
+                new Point(sidePadding, yOffset),
+                (s, ev) => { MenuItemDisconnect_Click(s, ev); }, isDark);
+            dropdownPaneContent.Controls.Add(settingsConnectionPanel);
 
             yOffset += itemHeight + itemSpacing + 4;
 
@@ -1988,6 +2010,17 @@ namespace MeshCentralRouter
                 itemPanel.BackColor = isDark ? Color.FromArgb(55, 55, 55) : Color.FromArgb(235, 235, 235);
                 itemPanel.Cursor = Cursors.Hand;
                 itemPanel.Region = createRoundedRegion(itemWidth, itemHeight, cornerRadius);
+
+                // Add paint handler for rounded border
+                itemPanel.Paint += (s, ev) =>
+                {
+                    ev.Graphics.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
+                    using (var path = DropdownPaneStyle.CreateRoundedPath(itemWidth, itemHeight, cornerRadius))
+                    using (var pen = new Pen(Color.Black, 1))
+                    {
+                        ev.Graphics.DrawPath(pen, path);
+                    }
+                };
 
                 // Toggle switch centered near top
                 toggle.Size = new Size(36, 18);
@@ -2573,14 +2606,6 @@ namespace MeshCentralRouter
             settingsPaneStatsButton.Image = GetTintedIcon(Properties.Resources.Statistics20, ps.PaneTextColor);
             settingsPaneStatsButton.FlatAppearance.MouseOverBackColor = ps.PaneHoverColor;
 
-            // Update settings pane toggle items and action button with new theme
-            bool isDark = ThemeManager.Instance.IsDarkMode;
-            settingsConnectionButton?.UpdateTheme(isDark);
-            settingsStatusBarItem?.UpdateTheme(isDark);
-            settingsAutoReconnectItem?.UpdateTheme(isDark);
-            settingsSwapMouseItem?.UpdateTheme(isDark);
-            settingsRemoteKeyMapItem?.UpdateTheme(isDark);
-            settingsSyncClipboardItem?.UpdateTheme(isDark);
         }
 
         /* ===== USAGE EXAMPLE FOR GRID-BASED DROPDOWN PANE =====

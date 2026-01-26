@@ -293,6 +293,193 @@ namespace MeshCentralRouter
         }
 
         /// <summary>
+        /// Creates a rounded rectangle region for use with panels/controls.
+        /// </summary>
+        public static System.Drawing.Region CreateRoundedRegion(int width, int height, int radius = 8)
+        {
+            System.Drawing.Drawing2D.GraphicsPath path = new System.Drawing.Drawing2D.GraphicsPath();
+            int diameter = radius * 2;
+            path.AddArc(0, 0, diameter, diameter, 180, 90);
+            path.AddArc(width - diameter, 0, diameter, diameter, 270, 90);
+            path.AddArc(width - diameter, height - diameter, diameter, diameter, 0, 90);
+            path.AddArc(0, height - diameter, diameter, diameter, 90, 90);
+            path.CloseFigure();
+            return new System.Drawing.Region(path);
+        }
+
+        /// <summary>
+        /// Creates a rounded rectangle path for drawing borders.
+        /// </summary>
+        public static System.Drawing.Drawing2D.GraphicsPath CreateRoundedPath(int width, int height, int radius = 8)
+        {
+            System.Drawing.Drawing2D.GraphicsPath path = new System.Drawing.Drawing2D.GraphicsPath();
+            int diameter = radius * 2;
+            // Inset by 1 pixel for border drawing
+            path.AddArc(1, 1, diameter, diameter, 180, 90);
+            path.AddArc(width - diameter - 2, 1, diameter, diameter, 270, 90);
+            path.AddArc(width - diameter - 2, height - diameter - 2, diameter, diameter, 0, 90);
+            path.AddArc(1, height - diameter - 2, diameter, diameter, 90, 90);
+            path.CloseFigure();
+            return path;
+        }
+
+        /// <summary>
+        /// Creates a rounded action button panel with icon and label (Settings pane style).
+        /// </summary>
+        public Panel CreateActionButton(string icon, string labelText, int width, int height,
+            Point location, EventHandler clickHandler, bool isDarkMode)
+        {
+            Panel itemPanel = new Panel();
+            itemPanel.Size = new Size(width, height);
+            itemPanel.Location = location;
+            itemPanel.BackColor = isDarkMode ? Color.FromArgb(55, 55, 55) : Color.FromArgb(235, 235, 235);
+            itemPanel.Cursor = Cursors.Hand;
+            itemPanel.Region = CreateRoundedRegion(width, height);
+
+            // Add paint handler for rounded border
+            itemPanel.Paint += (s, e) =>
+            {
+                e.Graphics.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
+                using (var path = CreateRoundedPath(width, height))
+                using (var pen = new Pen(Color.Black, 1))
+                {
+                    e.Graphics.DrawPath(pen, path);
+                }
+            };
+
+            // Icon label centered near top
+            Label iconLabel = new Label();
+            iconLabel.Text = icon;
+            iconLabel.Font = new Font("Segoe UI Emoji", 14F);
+            iconLabel.ForeColor = isDarkMode ? Color.FromArgb(180, 180, 180) : Color.FromArgb(100, 100, 100);
+            iconLabel.BackColor = Color.Transparent;
+            iconLabel.Size = new Size(width, 24);
+            iconLabel.Location = new Point(0, 10);
+            iconLabel.TextAlign = ContentAlignment.MiddleCenter;
+            itemPanel.Controls.Add(iconLabel);
+
+            // Text label below icon
+            Label textLabel = new Label();
+            textLabel.Text = labelText;
+            textLabel.Font = new Font("Segoe UI", 8F);
+            textLabel.ForeColor = PaneTextColor;
+            textLabel.BackColor = Color.Transparent;
+            textLabel.Size = new Size(width - 4, 28);
+            textLabel.Location = new Point(2, 38);
+            textLabel.TextAlign = ContentAlignment.TopCenter;
+            itemPanel.Controls.Add(textLabel);
+
+            // Click handlers
+            if (clickHandler != null)
+            {
+                itemPanel.Click += clickHandler;
+                iconLabel.Click += clickHandler;
+                textLabel.Click += clickHandler;
+            }
+
+            return itemPanel;
+        }
+
+        /// <summary>
+        /// Creates a rounded text-only button panel (Settings pane style, for actions without icons).
+        /// </summary>
+        public Panel CreateRoundedButton(string text, int width, int height,
+            Point location, EventHandler clickHandler, bool isDarkMode,
+            Font customFont = null, bool isSelected = false)
+        {
+            Panel itemPanel = new Panel();
+            itemPanel.Size = new Size(width, height);
+            itemPanel.Location = location;
+            itemPanel.BackColor = isSelected
+                ? SelectedColor
+                : (isDarkMode ? Color.FromArgb(55, 55, 55) : Color.FromArgb(235, 235, 235));
+            itemPanel.Cursor = Cursors.Hand;
+            itemPanel.Region = CreateRoundedRegion(width, height);
+
+            // Add paint handler for rounded border
+            itemPanel.Paint += (s, e) =>
+            {
+                e.Graphics.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
+                using (var path = CreateRoundedPath(width, height))
+                using (var pen = new Pen(Color.Black, 1))
+                {
+                    e.Graphics.DrawPath(pen, path);
+                }
+            };
+
+            // Text label centered
+            Label textLabel = new Label();
+            textLabel.Text = text;
+            textLabel.Font = customFont ?? SmallFont;
+            textLabel.ForeColor = PaneTextColor;
+            textLabel.BackColor = Color.Transparent;
+            textLabel.Size = new Size(width - 4, height - 4);
+            textLabel.Location = new Point(2, 2);
+            textLabel.TextAlign = ContentAlignment.MiddleCenter;
+            itemPanel.Controls.Add(textLabel);
+
+            // Click handlers
+            if (clickHandler != null)
+            {
+                itemPanel.Click += clickHandler;
+                textLabel.Click += clickHandler;
+            }
+
+            return itemPanel;
+        }
+
+        /// <summary>
+        /// Creates a rounded image button panel for display selection buttons.
+        /// </summary>
+        public Panel CreateRoundedImageButton(int width, int height, Point location,
+            ImageList imageList, int imageIndex, EventHandler clickHandler,
+            bool isDarkMode, bool isSelected = false, object tag = null)
+        {
+            Panel itemPanel = new Panel();
+            itemPanel.Size = new Size(width, height);
+            itemPanel.Location = location;
+            itemPanel.BackColor = isSelected
+                ? SelectedColor
+                : (isDarkMode ? Color.FromArgb(55, 55, 55) : Color.FromArgb(235, 235, 235));
+            itemPanel.Cursor = Cursors.Hand;
+            itemPanel.Region = CreateRoundedRegion(width, height);
+            itemPanel.Tag = tag;
+
+            // Add paint handler for rounded border
+            itemPanel.Paint += (s, e) =>
+            {
+                e.Graphics.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
+                using (var path = CreateRoundedPath(width, height))
+                using (var pen = new Pen(Color.Black, 1))
+                {
+                    e.Graphics.DrawPath(pen, path);
+                }
+            };
+
+            // PictureBox for image centered
+            PictureBox picBox = new PictureBox();
+            picBox.Size = new Size(width - 8, height - 8);
+            picBox.Location = new Point(4, 4);
+            picBox.SizeMode = PictureBoxSizeMode.CenterImage;
+            picBox.BackColor = Color.Transparent;
+            if (imageList != null && imageIndex >= 0 && imageIndex < imageList.Images.Count)
+            {
+                picBox.Image = imageList.Images[imageIndex];
+            }
+            picBox.Tag = tag;
+            itemPanel.Controls.Add(picBox);
+
+            // Click handlers
+            if (clickHandler != null)
+            {
+                itemPanel.Click += clickHandler;
+                picBox.Click += clickHandler;
+            }
+
+            return itemPanel;
+        }
+
+        /// <summary>
         /// Creates a stats row (label + value) and returns the new yOffset.
         /// </summary>
         public int AddStatsRow(Control parent, string labelText, Label valueLabel,

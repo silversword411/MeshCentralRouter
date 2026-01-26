@@ -855,7 +855,7 @@ namespace MeshCentralRouter
             this.themeButton.Image = global::MeshCentralRouter.Properties.Resources.MoonDark20;
             this.themeButton.ImageAlign = System.Drawing.ContentAlignment.MiddleCenter;
             this.themeButton.Text = "";
-            this.themeButton.UseVisualStyleBackColor = true;
+            this.themeButton.UseVisualStyleBackColor = false;
             this.themeButton.Click += new System.EventHandler(this.themeButton_Click);
             //
             // gearButton
@@ -871,7 +871,7 @@ namespace MeshCentralRouter
             this.gearButton.Image = global::MeshCentralRouter.Properties.Resources.Gear20;
             this.gearButton.ImageAlign = System.Drawing.ContentAlignment.MiddleCenter;
             this.gearButton.Text = "";
-            this.gearButton.UseVisualStyleBackColor = true;
+            this.gearButton.UseVisualStyleBackColor = false;
             this.gearButton.Click += new System.EventHandler(this.gearButton_Click);
             //
             // displayButton
@@ -887,7 +887,7 @@ namespace MeshCentralRouter
             this.displayButton.Image = global::MeshCentralRouter.Properties.Resources.Display20;
             this.displayButton.ImageAlign = System.Drawing.ContentAlignment.MiddleCenter;
             this.displayButton.Text = "";
-            this.displayButton.UseVisualStyleBackColor = true;
+            this.displayButton.UseVisualStyleBackColor = false;
             this.displayButton.Click += new System.EventHandler(this.displayButton_Click);
             //
             // otherButton
@@ -903,7 +903,7 @@ namespace MeshCentralRouter
             this.otherButton.Image = global::MeshCentralRouter.Properties.Resources.Wrench20;
             this.otherButton.ImageAlign = System.Drawing.ContentAlignment.MiddleCenter;
             this.otherButton.Text = "";
-            this.otherButton.UseVisualStyleBackColor = true;
+            this.otherButton.UseVisualStyleBackColor = false;
             this.otherButton.Click += new System.EventHandler(this.otherButton_Click);
             //
             // infoButton
@@ -919,7 +919,7 @@ namespace MeshCentralRouter
             this.infoButton.Image = global::MeshCentralRouter.Properties.Resources.Statistics20;
             this.infoButton.ImageAlign = System.Drawing.ContentAlignment.MiddleCenter;
             this.infoButton.Text = "";
-            this.infoButton.UseVisualStyleBackColor = true;
+            this.infoButton.UseVisualStyleBackColor = false;
             this.infoButton.Click += new System.EventHandler(this.infoButton_Click);
             //
             // connectButton - moved to titlebar as RoundedButton
@@ -1127,7 +1127,7 @@ namespace MeshCentralRouter
             this.chatButton.Image = global::MeshCentralRouter.Properties.Resources.Chat20;
             this.chatButton.ImageAlign = System.Drawing.ContentAlignment.MiddleCenter;
             this.chatButton.Text = "";
-            this.chatButton.UseVisualStyleBackColor = true;
+            this.chatButton.UseVisualStyleBackColor = false;
             this.chatButton.Click += new System.EventHandler(this.chatButton_Click);
             //
             // chatSeparator - no longer used since chat button moved to center
@@ -1182,7 +1182,7 @@ namespace MeshCentralRouter
             this.openRemoteFilesButton.Image = global::MeshCentralRouter.Properties.Resources.Files20;
             this.openRemoteFilesButton.ImageAlign = System.Drawing.ContentAlignment.MiddleCenter;
             this.openRemoteFilesButton.Text = "";
-            this.openRemoteFilesButton.UseVisualStyleBackColor = true;
+            this.openRemoteFilesButton.UseVisualStyleBackColor = false;
             this.openRemoteFilesButton.Click += new System.EventHandler(this.openRemoteFilesButton_Click);
             // 
             // extraButtonsPanel
@@ -1246,7 +1246,7 @@ namespace MeshCentralRouter
             this.zoomButton.Image = global::MeshCentralRouter.Properties.Resources.ZoomToFit;
             this.zoomButton.ImageAlign = System.Drawing.ContentAlignment.MiddleCenter;
             this.zoomButton.Text = "";
-            this.zoomButton.UseVisualStyleBackColor = true;
+            this.zoomButton.UseVisualStyleBackColor = false;
             this.zoomButton.Click += new System.EventHandler(this.zoomButton_Click);
             //
             // cadButton - moved to Other dropdown pane

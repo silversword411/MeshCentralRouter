@@ -1406,7 +1406,7 @@ namespace MeshCentralRouter
             yOffset = ps.AddStatsRow(dropdownPaneContent, "In Ratio:", statsInRatioValueLabel, yOffset);
             yOffset = ps.AddStatsRow(dropdownPaneContent, "Out Ratio:", statsOutRatioValueLabel, yOffset);
 
-            yOffset += 4;
+            yOffset += 10;
 
             // Size and show the dropdown pane
             ps.FinalizePane(dropdownPane, dropdownPaneLabel, dropdownPaneContent,
@@ -1688,7 +1688,7 @@ namespace MeshCentralRouter
                 scalingPresetPanels.Add(presetPanel);
             }
 
-            yOffset += halfHeight + 4;
+            yOffset += halfHeight + 10;
 
             // Size and show the dropdown pane
             ps.FinalizePane(dropdownPane, dropdownPaneLabel, dropdownPaneContent,
@@ -2022,9 +2022,9 @@ namespace MeshCentralRouter
                     }
                 };
 
-                // Toggle switch centered near top
-                toggle.Size = new Size(36, 18);
-                toggle.Location = new Point((itemWidth - 36) / 2, 12);
+                // Toggle switch centered near top (31x15 = 85% of original 36x18)
+                toggle.Size = new Size(31, 15);
+                toggle.Location = new Point((itemWidth - 31) / 2, 12);
                 toggle.OffColor = isDark ? Color.FromArgb(90, 90, 90) : Color.FromArgb(180, 180, 180);
                 toggle.OnColor = Color.FromArgb(76, 175, 80);
                 toggle.ThumbColor = isDark ? Color.FromArgb(235, 235, 235) : Color.White;
@@ -2495,14 +2495,16 @@ namespace MeshCentralRouter
             titleLabel.ForeColor = titleBarTextColor;
 
             // Update center panel color (darker/lighter shade for contrast)
+            Color centerPanelColor;
             if (theme.IsDarkMode)
             {
-                titleBarPanel.CenterColor = Color.FromArgb(65, 65, 65); // Slightly lighter shade for better contrast in dark mode
+                centerPanelColor = Color.FromArgb(65, 65, 65); // Slightly lighter shade for better contrast in dark mode
             }
             else
             {
-                titleBarPanel.CenterColor = Color.FromArgb(200, 200, 200); // Slightly darker in light mode
+                centerPanelColor = Color.FromArgb(200, 200, 200); // Slightly darker in light mode
             }
+            titleBarPanel.CenterColor = centerPanelColor;
 
             // Update title bar buttons
             themeButton.BackColor = titleBarColor;
@@ -2518,15 +2520,15 @@ namespace MeshCentralRouter
             closeButton.ForeColor = titleBarTextColor;
             closeButton.FlatAppearance.MouseOverBackColor = Color.FromArgb(232, 17, 35);
 
-            // Update chat button in title bar (icon button style, same as gear/display/info buttons)
-            chatButton.BackColor = titleBarColor;
+            // Update chat button in center panel (icon button style, same as gear/display/info buttons)
+            chatButton.BackColor = centerPanelColor;
             chatButton.ForeColor = titleBarTextColor;
             chatButton.FlatAppearance.MouseOverBackColor = theme.GetButtonHoverColor();
             chatButton.Image = GetTintedIcon(Properties.Resources.Chat20, titleBarTextColor);
             chatButton.Text = "";
 
-            // Update files button in title bar (icon button style, same as gear/display/info buttons)
-            openRemoteFilesButton.BackColor = titleBarColor;
+            // Update files button in center panel (icon button style, same as gear/display/info buttons)
+            openRemoteFilesButton.BackColor = centerPanelColor;
             openRemoteFilesButton.ForeColor = titleBarTextColor;
             openRemoteFilesButton.FlatAppearance.MouseOverBackColor = theme.GetButtonHoverColor();
             openRemoteFilesButton.Image = GetTintedIcon(Properties.Resources.Files20, titleBarTextColor);
@@ -2542,8 +2544,8 @@ namespace MeshCentralRouter
             // Update dropdown pane
             UpdateDropdownPaneTheme();
 
-            // Update gear button in title bar (centered)
-            gearButton.BackColor = titleBarColor;
+            // Update gear button in title bar (centered) - use centerPanelColor to blend with center panel
+            gearButton.BackColor = centerPanelColor;
             gearButton.ForeColor = titleBarTextColor;
             gearButton.FlatAppearance.MouseOverBackColor = theme.GetButtonHoverColor();
             // Use a tinted Material icon so it stays readable in both themes
@@ -2551,21 +2553,21 @@ namespace MeshCentralRouter
             gearButton.Text = "";
 
             // Update display button in title bar (to the left of gear button)
-            displayButton.BackColor = titleBarColor;
+            displayButton.BackColor = centerPanelColor;
             displayButton.ForeColor = titleBarTextColor;
             displayButton.FlatAppearance.MouseOverBackColor = theme.GetButtonHoverColor();
             displayButton.Image = GetTintedIcon(Properties.Resources.Display20, titleBarTextColor);
             displayButton.Text = "";
 
             // Update other button in title bar (to the right of display button)
-            otherButton.BackColor = titleBarColor;
+            otherButton.BackColor = centerPanelColor;
             otherButton.ForeColor = titleBarTextColor;
             otherButton.FlatAppearance.MouseOverBackColor = theme.GetButtonHoverColor();
             otherButton.Image = GetTintedIcon(Properties.Resources.Wrench20, titleBarTextColor);
             otherButton.Text = "";
 
             // Update info button in title bar (to the right of gear button)
-            infoButton.BackColor = titleBarColor;
+            infoButton.BackColor = centerPanelColor;
             infoButton.ForeColor = titleBarTextColor;
             infoButton.FlatAppearance.MouseOverBackColor = theme.GetButtonHoverColor();
             infoButton.Image = GetTintedIcon(Properties.Resources.Statistics20, titleBarTextColor);
@@ -2582,8 +2584,8 @@ namespace MeshCentralRouter
             }
             themeButton.Text = "";
 
-            // Update zoom button icon with theme-aware tinting
-            zoomButton.BackColor = titleBarColor;
+            // Update zoom button icon with theme-aware tinting - use centerPanelColor to blend with center panel
+            zoomButton.BackColor = centerPanelColor;
             zoomButton.FlatAppearance.MouseOverBackColor = theme.GetButtonHoverColor();
             zoomButton.Image = GetTintedIcon(Properties.Resources.ZoomToFit, titleBarTextColor);
         }

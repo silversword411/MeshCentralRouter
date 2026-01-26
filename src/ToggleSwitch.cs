@@ -120,9 +120,9 @@ namespace MeshCentralRouter
             // Clear background so the rounded corners don't show stale pixels.
             g.Clear(this.BackColor);
 
-            // Draw background track
-            int trackHeight = this.Height;
-            int trackWidth = this.Width;
+            // Draw background track (inset by 1 to prevent border clipping)
+            int trackHeight = this.Height - 1;
+            int trackWidth = this.Width - 1;
             Rectangle trackRect = new Rectangle(0, 0, trackWidth, trackHeight);
 
             // Interpolate color based on animation progress
@@ -148,12 +148,14 @@ namespace MeshCentralRouter
             }
 
             // Draw thumb (the sliding circle)
-            int thumbSize = trackHeight - 4;
-            int thumbOffset = 2;
-            int maxThumbX = trackWidth - thumbSize - thumbOffset;
-            int thumbX = thumbOffset + (int)(maxThumbX * _animationProgress);
+            int thumbPadding = 2;  // Padding from track edge to thumb
+            int thumbSize = trackHeight - (thumbPadding * 2);
+            int thumbY = thumbPadding;
+            int thumbMinX = thumbPadding;
+            int thumbMaxX = trackWidth - thumbPadding - thumbSize;
+            int thumbX = thumbMinX + (int)((thumbMaxX - thumbMinX) * _animationProgress);
 
-            Rectangle thumbRect = new Rectangle(thumbX, thumbOffset, thumbSize, thumbSize);
+            Rectangle thumbRect = new Rectangle(thumbX, thumbY, thumbSize, thumbSize);
 
             using (SolidBrush thumbBrush = new SolidBrush(_thumbColor))
             using (GraphicsPath thumbPath = GetRoundedRectangle(thumbRect, thumbSize / 2))

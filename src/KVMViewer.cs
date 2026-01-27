@@ -167,9 +167,9 @@ namespace MeshCentralRouter
             try { FrameRate = int.Parse(Settings.GetRegValue("kvmFrameRate", "100")); } catch (Exception) { }
             kvmControl.SetCompressionParams(CompressionLevel, ScalingLevel, FrameRate);
             kvmControl.SwamMouseButtons = Settings.GetRegValue("kvmSwamMouseButtons", "0").Equals("1");
-            kvmControl.RemoteKeyboardMap = Settings.GetRegValue("kvmSwamMouseButtons", "0").Equals("1");
+            kvmControl.RemoteKeyboardMap = Settings.GetRegValue("kvmRemoteKeyboardMap", "1").Equals("1");
             kvmControl.AutoSendClipboard = Settings.GetRegValue("kvmAutoClipboard", "0").Equals("1");
-            kvmControl.AutoReconnect = Settings.GetRegValue("kvmAutoReconnect", "0").Equals("1");
+            kvmControl.AutoReconnect = Settings.GetRegValue("kvmAutoReconnect", "1").Equals("1");
 
             // Subscribe to theme changes and apply initial theme
             ThemeManager.Instance.ThemeChanged += ThemeManager_ThemeChanged;
@@ -180,7 +180,7 @@ namespace MeshCentralRouter
             PositionTitleBarButtons();
 
             // Load status bar visibility preference
-            bool statusBarVisible = Settings.GetRegValue("kvmStatusBarVisible", "1").Equals("1");
+            bool statusBarVisible = Settings.GetRegValue("kvmStatusBarVisible", "0").Equals("1");
             mainStatusStrip.Visible = statusBarVisible;
             paneStatusBarToggleSwitch.Checked = statusBarVisible;
 
@@ -2481,6 +2481,7 @@ namespace MeshCentralRouter
             kvmControl.AutoSendClipboard = isChecked;
             Settings.SetRegValue("kvmAutoClipboard", isChecked ? "1" : "0");
             if (paneSyncClipboardToggleSwitch.Checked != isChecked) paneSyncClipboardToggleSwitch.Checked = isChecked;
+            if (clipboardButtonControl.ToggleChecked != isChecked) clipboardButtonControl.ToggleChecked = isChecked;
             if (isChecked) { Parent_ClipboardChanged(); }
         }
 

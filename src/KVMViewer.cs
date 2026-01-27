@@ -251,6 +251,30 @@ namespace MeshCentralRouter
             }
         }
 
+        private delegate void TypeClipboardTextHandler();
+
+        private void TypeClipboardText()
+        {
+            if (this.InvokeRequired) { this.Invoke(new TypeClipboardTextHandler(TypeClipboardText)); return; }
+            if (state != 3 || kvmControl == null) return;
+
+            string textData = (string)Clipboard.GetData(DataFormats.Text);
+            if (textData != null && textData.Length > 0)
+            {
+                // Send each character as a unicode keypress
+                foreach (char c in textData)
+                {
+                    ushort keyCode = (ushort)c;
+                    kvmControl.SendUnicodeKey(keyCode, 0); // Press
+                    System.Threading.Thread.Sleep(10); // Small delay between keys
+                    kvmControl.SendUnicodeKey(keyCode, 1); // Release
+                }
+                
+                // Return focus to the KVM control after typing
+                kvmControl.Focus();
+            }
+        }
+
         public void TryAutoConnect()
         {
             if ((localAutoReconnect == false) || (kvmControl.AutoReconnect == false)) return;
@@ -1116,6 +1140,16 @@ namespace MeshCentralRouter
                     HideDropdownPane();
                 }, isDark);
             dropdownPaneContent.Controls.Add(cadButton);
+            
+            // Type Clipboard button - types local clipboard contents as keyboard input to remote device
+            Panel clipboardButton = ps.CreateActionButton("📋", "Type\nClipboard",
+                itemWidth, itemHeight,
+                new Point(DropdownPaneStyle.SidePadding + itemWidth + 8, yOffset),
+                (s, ev) => {
+                    HideDropdownPane();
+                    TypeClipboardText();
+                }, isDark);
+            dropdownPaneContent.Controls.Add(clipboardButton);
             yOffset += itemHeight + 10;
 
             // Size and show the dropdown pane

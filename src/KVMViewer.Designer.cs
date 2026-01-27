@@ -358,7 +358,7 @@ namespace MeshCentralRouter
             iconLabel.ForeColor = isDarkMode ? Color.FromArgb(180, 180, 180) : Color.FromArgb(100, 100, 100);
             iconLabel.BackColor = Color.Transparent;
             iconLabel.Size = new Size(width, 24);
-            iconLabel.Location = new Point(0, 10);
+            iconLabel.Location = new Point(0, 8);
             iconLabel.TextAlign = ContentAlignment.MiddleCenter;
             itemPanel.Controls.Add(iconLabel);
 
@@ -368,8 +368,8 @@ namespace MeshCentralRouter
             textLabel.Font = new Font("Segoe UI", 8F);
             textLabel.ForeColor = PaneTextColor;
             textLabel.BackColor = Color.Transparent;
-            textLabel.Size = new Size(width - 4, 28);
-            textLabel.Location = new Point(2, 38);
+            textLabel.Size = new Size(width - 4, 32);
+            textLabel.Location = new Point(2, 32);
             textLabel.TextAlign = ContentAlignment.TopCenter;
             itemPanel.Controls.Add(textLabel);
 

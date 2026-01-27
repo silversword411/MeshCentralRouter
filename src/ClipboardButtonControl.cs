@@ -99,6 +99,14 @@ namespace MeshCentralRouter
             toggle.BackColor = color;
         }
 
+        public void SetToolTips(ToolTip tooltip)
+        {
+            if (tooltip == null) return;
+            tooltip.SetToolTip(toggle, "Clipboard sync");
+            tooltip.SetToolTip(upArrowButton, "Send Clipboard");
+            tooltip.SetToolTip(downArrowButton, "Receive Clipboard");
+        }
+
         private Button CreateArrowButton(Point location, EventHandler handler)
         {
             var btn = new Button

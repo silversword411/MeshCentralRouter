@@ -202,6 +202,7 @@ namespace MeshCentralRouter
             // Initialize clipboard button control in titlebar
             clipboardButtonControl.ToggleChecked = kvmControl.AutoSendClipboard;
             clipboardButtonControl.SetArrowIcons(null, null);  // Uses text arrows, not icons
+            clipboardButtonControl.SetToolTips(mainToolTip);
 
             // Load display scaling preference
             try { currentScalingPercent = double.Parse(Settings.GetRegValue("kvmDisplayScaling", "100")); } catch (Exception) { currentScalingPercent = 100; }

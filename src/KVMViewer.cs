@@ -199,6 +199,10 @@ namespace MeshCentralRouter
             // Load auto send clipboard preference and sync toggle
             paneSyncClipboardToggleSwitch.Checked = kvmControl.AutoSendClipboard;
 
+            // Initialize clipboard button control in titlebar
+            clipboardButtonControl.ToggleChecked = kvmControl.AutoSendClipboard;
+            clipboardButtonControl.SetArrowIcons(null, null);  // Uses text arrows, not icons
+
             // Load display scaling preference
             try { currentScalingPercent = double.Parse(Settings.GetRegValue("kvmDisplayScaling", "100")); } catch (Exception) { currentScalingPercent = 100; }
             if (currentScalingPercent < 12.5) currentScalingPercent = 12.5;
@@ -684,7 +688,7 @@ namespace MeshCentralRouter
         {
             // Center the display, other, files, chat, gear and info buttons in the title bar (with small spacing between them)
             int spacing = 4;
-            int totalWidth = displayButton.Width + spacing + otherButton.Width + spacing + openRemoteFilesButton.Width + spacing + chatButton.Width + spacing + gearButton.Width + spacing + infoButton.Width;
+            int totalWidth = displayButton.Width + spacing + otherButton.Width + spacing + openRemoteFilesButton.Width + spacing + chatButton.Width + spacing + gearButton.Width + spacing + infoButton.Width + spacing + clipboardButtonControl.Width;
             int startX = (titleBarPanel.Width - totalWidth) / 2;
             int currentX = startX;
 
@@ -704,6 +708,9 @@ namespace MeshCentralRouter
             currentX += gearButton.Width + spacing;
 
             infoButton.Location = new Point(currentX, infoButton.Location.Y);
+            currentX += infoButton.Width + spacing;
+
+            clipboardButtonControl.Location = new Point(currentX, clipboardButtonControl.Location.Y);
 
             // Also center the dropdown pane if it's visible
             if (dropdownPane.Visible)
@@ -2573,6 +2580,13 @@ namespace MeshCentralRouter
             infoButton.Image = GetTintedIcon(Properties.Resources.Statistics20, titleBarTextColor);
             infoButton.Text = "";
 
+            // Update clipboard button control in title bar (between gear and info)
+            clipboardButtonControl.SetButtonBackColor(centerPanelColor);
+            clipboardButtonControl.SetToggleColors(Color.FromArgb(76, 175, 80), 
+                                                     theme.IsDarkMode ? Color.FromArgb(70, 70, 70) : Color.LightGray,
+                                                     theme.IsDarkMode ? Color.FromArgb(230, 230, 230) : Color.White);
+            clipboardButtonControl.SetArrowIcons(null, null);  // Uses text arrows
+
             // Update theme button icon based on current theme (use Material Design icons)
             if (theme.IsDarkMode)
             {
@@ -2670,5 +2684,34 @@ namespace MeshCentralRouter
          * 
          * ===== END USAGE EXAMPLE =====
          */
+
+        private void clipboardButtonControl_Toggle_CheckedChanged(object sender, EventArgs e)
+        {
+            // Sync clipboard button toggle with the settings pane toggle and kvmControl
+            kvmControl.AutoSendClipboard = clipboardButtonControl.ToggleChecked;
+            paneSyncClipboardToggleSwitch.Checked = clipboardButtonControl.ToggleChecked;
+            Settings.SetRegValue("kvmAutoClipboard", clipboardButtonControl.ToggleChecked ? "1" : "0");
+
+            // If enabling auto-sync, send current clipboard immediately
+            if (clipboardButtonControl.ToggleChecked)
+            {
+                Parent_ClipboardChanged();
+            }
+        }
+
+        private void clipboardButtonControl_UpArrow_Click(object sender, EventArgs e)
+        {
+            // Send local clipboard to remote (same as clipOutboundButton)
+            SendClipboard();
+        }
+
+        private void clipboardButtonControl_DownArrow_Click(object sender, EventArgs e)
+        {
+            // Request clipboard from remote (same as clipInboundButton)
+            if (server != null && node != null)
+            {
+                server.sendCommand("{\"action\":\"msg\",\"type\":\"getclip\",\"nodeid\":\"" + node.nodeid + "\"}");
+            }
+        }
     }
 }

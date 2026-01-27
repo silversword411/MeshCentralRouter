@@ -25,7 +25,7 @@ namespace MeshCentralRouter
     public class TitleBarWithCenterPanel : System.Windows.Forms.Panel
     {
         private System.Drawing.Color centerColor = System.Drawing.Color.FromArgb(40, 40, 40);
-        private int centerWidth = 230;
+        private int centerWidth = 250;
         private int angleWidth = 20;
 
         public System.Drawing.Color CenterColor
@@ -728,6 +728,7 @@ namespace MeshCentralRouter
             this.displayButton = new System.Windows.Forms.Button();
             this.otherButton = new System.Windows.Forms.Button();
             this.infoButton = new System.Windows.Forms.Button();
+            this.clipboardButtonControl = new MeshCentralRouter.ClipboardButtonControl();
             this.themeButton = new System.Windows.Forms.Button();
             this.paneStatusBarToggleSwitch = new MeshCentralRouter.ToggleSwitch();
             this.paneAutoReconnectToggleSwitch = new MeshCentralRouter.ToggleSwitch();
@@ -785,6 +786,7 @@ namespace MeshCentralRouter
             this.titleBarPanel.Controls.Add(this.chatButton);
             this.titleBarPanel.Controls.Add(this.openRemoteFilesButton);
             this.titleBarPanel.Controls.Add(this.infoButton);
+            this.titleBarPanel.Controls.Add(this.clipboardButtonControl);
             this.titleBarPanel.Controls.Add(this.gearButton);
             this.titleBarPanel.Controls.Add(this.displayButton);
             this.titleBarPanel.Controls.Add(this.otherButton);
@@ -921,6 +923,18 @@ namespace MeshCentralRouter
             this.infoButton.Text = "";
             this.infoButton.UseVisualStyleBackColor = false;
             this.infoButton.Click += new System.EventHandler(this.infoButton_Click);
+            //
+            // clipboardButtonControl
+            //
+            this.clipboardButtonControl.Anchor = System.Windows.Forms.AnchorStyles.Top;
+            this.clipboardButtonControl.Location = new System.Drawing.Point(413, 4);
+            this.clipboardButtonControl.Name = "clipboardButtonControl";
+            this.clipboardButtonControl.Size = new System.Drawing.Size(32, 24);
+            this.clipboardButtonControl.TabIndex = 10;
+            this.clipboardButtonControl.TabStop = false;
+            this.clipboardButtonControl.UpArrowClick += new System.EventHandler(this.clipboardButtonControl_UpArrow_Click);
+            this.clipboardButtonControl.DownArrowClick += new System.EventHandler(this.clipboardButtonControl_DownArrow_Click);
+            this.clipboardButtonControl.ToggleCheckedChanged += new System.EventHandler(this.clipboardButtonControl_Toggle_CheckedChanged);
             //
             // connectButton - moved to titlebar as RoundedButton
             //
@@ -1335,6 +1349,7 @@ namespace MeshCentralRouter
         private Button displayButton;
         private Button otherButton;
         private Button infoButton;
+        private ClipboardButtonControl clipboardButtonControl;
         private Panel dropdownPane;
         private Panel dropdownPaneContent;
         private Button settingsPaneSettingsButton;

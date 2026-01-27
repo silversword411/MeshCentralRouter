@@ -1726,11 +1726,11 @@ namespace MeshCentralRouter
                     autoRemoteIp = getValueFromQueryString(authLoginUrl2.Query, "remoteip");
                     int.TryParse(getValueFromQueryString(authLoginUrl2.Query, "remoteport"), out autoRemotePort);
                     int.TryParse(getValueFromQueryString(authLoginUrl2.Query, "protocol"), out autoProtocol);
-                    autoAppIdStr = getValueFromQueryString(authLoginUrl2.Query, "appid");
-                    int.TryParse(autoAppIdStr, out autoAppId);
                     autoExit = (getValueFromQueryString(authLoginUrl2.Query, "autoexit") == "1");
                     string localPortStr = getValueFromQueryString(authLoginUrl.Query, "localport");
                     if (localPortStr != null) { autoLocalPort = int.Parse(localPortStr); }
+                    autoAppIdStr = getValueFromQueryString(authLoginUrl2.Query, "appid");
+                    int.TryParse(autoAppIdStr, out autoAppId);
                 }
                 catch (Exception) { }
                 if (((autoRemotePort != 0) && (autoProtocol != 0) && (autoNodeId != null)) || ((autoNodeId != null) && ((autoAppId == 6) || (autoAppId == 7))))
@@ -1839,7 +1839,6 @@ namespace MeshCentralRouter
 
                         mapPanel.Controls.Add(map);
                         ThemeNewMapControl(map);
-                        ThemeNewMapControl(map);
                         noMapLabel.Visible = false;
                         processedArgs.Add(i);
                     }
@@ -1944,7 +1943,6 @@ namespace MeshCentralRouter
                 map.Start();
 
                 mapPanel.Controls.Add(map);
-                ThemeNewMapControl(map);
                 noMapLabel.Visible = false;
             }
         }
@@ -2010,7 +2008,6 @@ namespace MeshCentralRouter
             meshcentral.onLoginTokenChanged += Meshcentral_onLoginTokenChanged;
             meshcentral.onClipboardData += Meshcentral_onClipboardData;
             meshcentral.onTwoFactorCookie += Meshcentral_onTwoFactorCookie;
-            if (allowUpdates) { meshcentral.onToolUpdate += Meshcentral_onToolUpdate; }
             if (sendEmailToken == true)
             {
                 sendEmailToken = false;
@@ -2115,7 +2112,6 @@ namespace MeshCentralRouter
                 map.Start();
 
                 mapPanel.Controls.Add(map);
-                ThemeNewMapControl(map);
                 noMapLabel.Visible = false;
             }
         }
@@ -2802,7 +2798,6 @@ namespace MeshCentralRouter
             if (devicesListView.SelectedItems.Count != 1) { return; }
             ListViewItem selecteditem = devicesListView.SelectedItems[0];
             NodeClass node = (NodeClass)selecteditem.Tag;
-            if ((node.conn & 1) == 0) { return; } // Agent not connected on this device
             if (node.fileViewer == null)
             {
                 node.fileViewer = new FileViewer(meshcentral, node);
@@ -3613,6 +3608,5 @@ namespace MeshCentralRouter
             advConfigButton.Visible = (progress == -1);
         }
         */
-
     }
 }

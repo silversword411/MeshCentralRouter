@@ -189,6 +189,8 @@
     </Compile>
     <Compile Include="src\Settings.cs" />
     <Compile Include="src\ThemeManager.cs" />
+    <Compile Include="src\VerticalToggleSwitch.cs" />
+    <Compile Include="src\ClipboardButtonControl.cs" />
     <Compile Include="src\ToggleSwitch.cs">
       <SubType>Component</SubType>
     </Compile>

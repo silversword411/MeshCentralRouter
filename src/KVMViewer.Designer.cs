@@ -299,10 +299,11 @@ namespace MeshCentralRouter
         {
             System.Drawing.Drawing2D.GraphicsPath path = new System.Drawing.Drawing2D.GraphicsPath();
             int diameter = radius * 2;
-            path.AddArc(0, 0, diameter, diameter, 180, 90);
-            path.AddArc(width - diameter, 0, diameter, diameter, 270, 90);
-            path.AddArc(width - diameter, height - diameter, diameter, diameter, 0, 90);
-            path.AddArc(0, height - diameter, diameter, diameter, 90, 90);
+            // Inset by 1 pixel to match border drawing and prevent background bleed
+            path.AddArc(1, 1, diameter, diameter, 180, 90);
+            path.AddArc(width - diameter - 2, 1, diameter, diameter, 270, 90);
+            path.AddArc(width - diameter - 2, height - diameter - 2, diameter, diameter, 0, 90);
+            path.AddArc(1, height - diameter - 2, diameter, diameter, 90, 90);
             path.CloseFigure();
             return new System.Drawing.Region(path);
         }
@@ -341,9 +342,12 @@ namespace MeshCentralRouter
             {
                 e.Graphics.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
                 using (var path = CreateRoundedPath(width, height))
-                using (var pen = new Pen(Color.Black, 1))
                 {
-                    e.Graphics.DrawPath(pen, path);
+                    Color borderColor = BorderColor;
+                    using (var pen = new Pen(borderColor, 2))
+                    {
+                        e.Graphics.DrawPath(pen, path);
+                    }
                 }
             };
 
@@ -401,9 +405,12 @@ namespace MeshCentralRouter
             {
                 e.Graphics.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
                 using (var path = CreateRoundedPath(width, height))
-                using (var pen = new Pen(Color.Black, 1))
                 {
-                    e.Graphics.DrawPath(pen, path);
+                    Color borderColor = isSelected ? SelectedBorderColor : BorderColor;
+                    using (var pen = new Pen(borderColor, 2))
+                    {
+                        e.Graphics.DrawPath(pen, path);
+                    }
                 }
             };
 
@@ -450,9 +457,12 @@ namespace MeshCentralRouter
             {
                 e.Graphics.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
                 using (var path = CreateRoundedPath(width, height))
-                using (var pen = new Pen(Color.Black, 1))
                 {
-                    e.Graphics.DrawPath(pen, path);
+                    Color borderColor = isSelected ? SelectedBorderColor : BorderColor;
+                    using (var pen = new Pen(borderColor, 2))
+                    {
+                        e.Graphics.DrawPath(pen, path);
+                    }
                 }
             };
 

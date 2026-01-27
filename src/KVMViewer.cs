@@ -103,9 +103,6 @@ namespace MeshCentralRouter
         public long bytesOut = 0;
         public long bytesOutCompressed = 0;
 
-        // Frame rate panel toggle button group
-        private ToggleButtonGroup frameRateButtonGroup;
-
         // Quality (compression) controls
         private Label qualityLevelLabel;
         private int currentQualityPercent = 60; // Current quality percentage (20-100, steps of 20)
